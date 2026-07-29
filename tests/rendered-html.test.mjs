@@ -35,12 +35,17 @@ test("server-renders the Livi organism experience", async () => {
 });
 
 test("ships the biological simulation and care interactions", async () => {
-  const [component, css, page, layout, packageJson] = await Promise.all([
+  const [component, hub, lifeData, css, page, layout, packageJson, readme, changelog, license] = await Promise.all([
     readFile(new URL("../app/LiviCompanion.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/LifeHub.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/lifeData.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
+    readFile(new URL("../README.md", import.meta.url), "utf8"),
+    readFile(new URL("../CHANGELOG.md", import.meta.url), "utf8"),
+    readFile(new URL("../LICENSE", import.meta.url), "utf8"),
   ]);
 
   assert.match(component, /function metabolize/);
@@ -55,8 +60,20 @@ test("ships the biological simulation and care interactions", async () => {
   assert.match(component, /Pet/);
   assert.match(component, /Play/);
   assert.match(component, /living cells/);
+  assert.match(component, /function lifeStats/);
+  assert.match(component, /function evaluateProgress/);
+  assert.match(component, /FEEDER_INTERVAL_MS/);
+  assert.match(hub, /BLOB STORE/);
+  assert.match(hub, /UPDATE HISTORY/);
+  assert.match(lifeData, /version: "0\.3\.0"/);
+  assert.match(lifeData, /auto-feeder/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
+  assert.match(css, /\.life-hub/);
   assert.match(page, /<LiviCompanion \/>/);
   assert.match(layout, /themeColor:\s*"#071724"/);
+  assert.match(packageJson, /"license": "CC0-1\.0"/);
+  assert.match(readme, /public\s+domain under/i);
+  assert.match(changelog, /\[0\.3\.0\]/);
+  assert.match(license, /CC0 1\.0 Universal/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
 });

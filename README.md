@@ -22,6 +22,12 @@ Care is part of the simulation:
   distributes through its body.
 - Petting builds bond, trust, and touch memory.
 - Play changes joy, movement, and care history.
+- A resilience-based lifespan moves from hatchling to elder, then preserves the
+  organism as a recoverable legacy seed.
+- Achievements and care earn in-world Motes. Motes buy functional feeders,
+  toys, nests, and habitat rooms—never real-money purchases.
+- New blob friends are discovered from meals, growth, and bonding, and their
+  visits affect joy, friendship, and gifts.
 - Time away is simulated on return, including energy use, damage, dormancy,
   and recovery.
 - AR room mode uses the device camera as a privacy-first local background.
@@ -44,10 +50,19 @@ a secure context (HTTPS) or localhost.
 ## Architecture
 
 - `app/LiviCompanion.tsx` — cellular ecology, persistence, adaptive behavior,
-  care loop, camera mode, sound, and procedural rendering.
+  lifespan, economy, care loop, camera mode, sound, and procedural rendering.
+- `app/LifeHub.tsx` and `app/lifeData.ts` — friends, achievements, store,
+  feeder, rooms, toys, and visible update history.
 - `app/globals.css` — responsive habitat and companion interface.
 - `tests/rendered-html.test.mjs` — production-render and capability checks.
 
 The browser build is the vertical slice. The next production layer should port
 the simulation model to deterministic Unity C# data structures while keeping
 rendering, AR tracking, and UI as separate consumers of the same organism state.
+
+## Releases and license
+
+Past changes are preserved in the in-app **Life Hub → History** view and in
+[CHANGELOG.md](./CHANGELOG.md). The complete project is dedicated to the public
+domain under [CC0 1.0 Universal](./LICENSE), so anyone can use, remix, publish,
+or build on LIVI without asking permission.
