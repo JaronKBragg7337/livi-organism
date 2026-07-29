@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import {
   ACHIEVEMENTS,
   FRIENDS,
@@ -24,6 +24,8 @@ type LifeHubProps = {
   lifespanDays: number;
   lifeRemaining: string;
   feederStatus: string;
+  commonsContent: ReactNode;
+  labContent: ReactNode;
   onClose: () => void;
   onTab: (tab: HubTab) => void;
   onPurchase: (itemId: string) => void;
@@ -32,9 +34,11 @@ type LifeHubProps = {
 };
 
 const TABS: { id: HubTab; label: string }[] = [
+  { id: "commons", label: "Commons" },
   { id: "store", label: "Store" },
   { id: "friends", label: "Friends" },
   { id: "achievements", label: "Badges" },
+  { id: "lab", label: "Lab" },
   { id: "updates", label: "History" },
 ];
 
@@ -52,6 +56,8 @@ export default function LifeHub({
   lifespanDays,
   lifeRemaining,
   feederStatus,
+  commonsContent,
+  labContent,
   onClose,
   onTab,
   onPurchase,
@@ -122,6 +128,8 @@ export default function LifeHub({
         </nav>
 
         <div className="hub-content" ref={contentRef}>
+          {tab === "commons" ? commonsContent : null}
+
           {tab === "store" ? (
             <section aria-label="Blob store">
               <div className="hub-section-heading">
@@ -243,6 +251,8 @@ export default function LifeHub({
               </div>
             </section>
           ) : null}
+
+          {tab === "lab" ? labContent : null}
 
           {tab === "updates" ? (
             <section aria-label="LIVI update history">

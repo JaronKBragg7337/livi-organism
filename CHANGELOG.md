@@ -3,6 +3,28 @@
 All notable changes to LIVI are preserved here and in the app under **Life
 Hub → History**.
 
+## [0.4.0] - 2026-07-29
+
+### Added
+
+- Optional email-based cloud recovery that never blocks account-free local
+  play.
+- The Blob Commons: opt-in public organism profiles, privacy-filtered traits,
+  daily visits, nutrient/play gifts, and friendship requests.
+- Local JSON export/import for account-free backups and transfers.
+- A Simulation Lab with temporary checkpoints, accelerated aging, starvation
+  pulses, nutrient blooms, and dormant-seed testing.
+- A versioned Supabase schema with row-level security, integrity constraints,
+  supporting indexes, and explicit Data API privileges.
+
+### Privacy
+
+- New profiles default to private at the database layer.
+- Full organism saves are readable only by their owner.
+- Public profiles exclude email, camera imagery, room imagery, and location.
+- Daily visit uniqueness and friendship participation are enforced by the
+  database rather than trusted to browser UI.
+
 ## [0.3.0] - 2026-07-29
 
 ### Added

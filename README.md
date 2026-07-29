@@ -33,9 +33,17 @@ Care is part of the simulation:
 - AR room mode uses the device camera as a privacy-first local background.
   The production mobile path is Unity AR Foundation for plane detection,
   anchors, occlusion, and persistent room locations.
+- The optional Blob Commons adds cross-device recovery, public organism
+  profiles, visits, gifts, and friendship requests. Local play remains
+  account-free, and profiles are private until their caregiver publishes them.
+- The Simulation Lab can checkpoint a local organism, advance its lifetime,
+  trigger growth or starvation, and test dormant-seed recovery.
 
-All organism state stays in browser storage on the current device. Camera
-frames are not uploaded or stored.
+By default, organism state stays in browser storage on the current device.
+Cloud recovery is opt-in. A public profile includes only the blob name,
+phenotype, life phase, cell count, bond, room, badges, and simulated traits.
+Email addresses, camera frames, room imagery, and location are never public.
+Camera frames are not uploaded or stored.
 
 ## Develop locally
 
@@ -47,13 +55,24 @@ npm run dev
 Then open the local URL printed by the development server. Camera mode requires
 a secure context (HTTPS) or localhost.
 
+The local organism, manual export/import, care loop, store, friends, and
+Simulation Lab work without cloud configuration. To enable the optional
+Commons, provide `NEXT_PUBLIC_SUPABASE_URL` and
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, then apply the migrations in
+`supabase/migrations`.
+
 ## Architecture
 
 - `app/LiviCompanion.tsx` — cellular ecology, persistence, adaptive behavior,
   lifespan, economy, care loop, camera mode, sound, and procedural rendering.
 - `app/LifeHub.tsx` and `app/lifeData.ts` — friends, achievements, store,
-  feeder, rooms, toys, and visible update history.
+  feeder, rooms, toys, the Simulation Lab, and visible update history.
+- `app/CloudCommons.tsx` and `app/cloud.ts` — optional identity, recovery,
+  privacy-filtered public profiles, visits, gifts, friendship requests, and
+  manual save transfer.
 - `app/globals.css` — responsive habitat and companion interface.
+- `supabase/migrations` — versioned Commons schema, indexes, constraints,
+  explicit API privileges, and row-level security policies.
 - `tests/rendered-html.test.mjs` — production-render and capability checks.
 
 The browser build is the vertical slice. The next production layer should port

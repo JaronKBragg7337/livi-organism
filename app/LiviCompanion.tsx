@@ -7,7 +7,16 @@ import {
   useRef,
   useState,
 } from "react";
+import CloudCommons from "./CloudCommons";
 import LifeHub from "./LifeHub";
+import SimulationLab from "./SimulationLab";
+import {
+  checksumJson,
+  cloudConfigured,
+  getCloudClient,
+  type CommonsFriendship,
+  type CommonsProfile,
+} from "./cloud";
 import {
   ACHIEVEMENTS,
   FEEDER_INTERVAL_MS,
@@ -109,6 +118,11 @@ type Heart = {
   x: number;
   y: number;
   born: number;
+};
+
+type CloudUserState = {
+  id: string;
+  email: string | null;
 };
 
 function clamp(value: number, min = 0, max = 1) {
@@ -432,14 +446,8 @@ const neighborMap = Array.from({ length: GRID * GRID }, (_, index) =>
   neighbors(index),
 );
 
-function applyOfflineLife(organism: Organism) {
-  const elapsedHours = clamp(
-    (Date.now() - (organism.lastSeen || Date.now())) / 3_600_000,
-    0,
-    96,
-  );
-  if (elapsedHours < 0.02) return organism;
-
+function simulateElapsed(organism: Organism, elapsedMinutes: number) {
+  const elapsedHours = Math.max(0, elapsedMinutes / 60);
   const drain = elapsedHours * (0.009 + organism.traits.appetite * 0.004);
   organism.cells.forEach((cell, index) => {
     if (!cell.alive) return;
@@ -461,7 +469,7 @@ function applyOfflineLife(organism: Organism) {
   });
 
   organism.joy = clamp(organism.joy - elapsedHours * 0.006);
-  organism.ageMinutes += elapsedHours * 60;
+  organism.ageMinutes += elapsedMinutes;
   const life = lifeStats(organism);
   if (life.progress > 0.78) {
     const ageDrain =
@@ -477,22 +485,45 @@ function applyOfflineLife(organism: Organism) {
     core.energy = Math.max(core.energy, 0.04);
     core.health = Math.max(core.health, 0.14);
   }
-
+  organism.lastSeen = Date.now();
   return organism;
+}
+
+function applyOfflineLife(organism: Organism) {
+  const elapsedMinutes = clamp(
+    (Date.now() - (organism.lastSeen || Date.now())) / 60_000,
+    0,
+    96 * 60,
+  );
+  if (elapsedMinutes < 1.2) return organism;
+
+  return simulateElapsed(organism, elapsedMinutes);
 }
 
 function loadOrganism() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return createOrganism();
-    const parsed = JSON.parse(raw) as Organism;
-    if (parsed.version !== 1 || !Array.isArray(parsed.cells)) {
-      return createOrganism();
-    }
-    return applyOfflineLife(hydrateLifeSystems(migrateCellField(parsed)));
+    return normalizeSavedOrganism(JSON.parse(raw));
   } catch {
     return createOrganism();
   }
+}
+
+function normalizeSavedOrganism(value: unknown) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    !("version" in value) ||
+    value.version !== 1 ||
+    !("cells" in value) ||
+    !Array.isArray(value.cells)
+  ) {
+    throw new Error("This file is not a compatible LIVI organism.");
+  }
+  return applyOfflineLife(
+    hydrateLifeSystems(migrateCellField(value as Organism)),
+  );
 }
 
 function metabolize(organism: Organism, movementCost: number) {
@@ -674,6 +705,7 @@ export default function LiviCompanion() {
   const heartIdRef = useRef(1);
   const frameRef = useRef(0);
   const audioRef = useRef<AudioContext | null>(null);
+  const checkpointRef = useRef<Organism | null>(null);
   const [ready, setReady] = useState(false);
   const [welcomed, setWelcomed] = useState(true);
   const [snapshot, setSnapshot] = useState<Snapshot>(() =>
@@ -683,9 +715,16 @@ export default function LiviCompanion() {
   const [cameraMessage, setCameraMessage] = useState("");
   const [inspectOpen, setInspectOpen] = useState(false);
   const [lifeHubOpen, setLifeHubOpen] = useState(false);
-  const [hubTab, setHubTab] = useState<HubTab>("store");
+  const [hubTab, setHubTab] = useState<HubTab>("commons");
   const [soundOn, setSoundOn] = useState(true);
   const [toast, setToast] = useState("A small life is stirring.");
+  const [cloudUser, setCloudUser] = useState<CloudUserState | null>(null);
+  const [cloudBusy, setCloudBusy] = useState(false);
+  const [cloudMessage, setCloudMessage] = useState("");
+  const [commonsProfiles, setCommonsProfiles] = useState<CommonsProfile[]>([]);
+  const [friendships, setFriendships] = useState<CommonsFriendship[]>([]);
+  const [ownProfileId, setOwnProfileId] = useState<number | null>(null);
+  const [checkpointAvailable, setCheckpointAvailable] = useState(false);
 
   const playTone = useCallback(
     (kind: "eat" | "pet" | "play") => {
@@ -719,6 +758,81 @@ export default function LiviCompanion() {
     [soundOn],
   );
 
+  const refreshCommons = useCallback(async () => {
+    if (!cloudConfigured()) return;
+    setCloudBusy(true);
+    try {
+      const cloud = getCloudClient();
+      const { data: profiles, error: profileError } = await cloud
+        .from("blob_profiles")
+        .select(
+          "id,slug,display_name,phenotype,life_phase,age_minutes,living_cells,bond,room_id,equipped_toy,achievements,traits,updated_at",
+        )
+        .eq("visibility", "public")
+        .order("updated_at", { ascending: false })
+        .limit(24);
+      if (profileError) throw profileError;
+
+      const profileIds = (profiles ?? []).map(({ id }) => id);
+      const visits =
+        profileIds.length > 0
+          ? await cloud
+              .from("blob_visits")
+              .select("host_profile_id")
+              .in("host_profile_id", profileIds)
+          : { data: [], error: null };
+      if (visits.error) throw visits.error;
+      const visitCounts = new Map<number, number>();
+      (visits.data ?? []).forEach(({ host_profile_id }) => {
+        visitCounts.set(
+          host_profile_id,
+          (visitCounts.get(host_profile_id) ?? 0) + 1,
+        );
+      });
+      setCommonsProfiles(
+        (profiles ?? []).map((profile) => ({
+          ...profile,
+          age_minutes: Number(profile.age_minutes),
+          bond: Number(profile.bond),
+          traits: (profile.traits ?? {}) as Record<string, number>,
+          visitCount: visitCounts.get(profile.id) ?? 0,
+        })) as CommonsProfile[],
+      );
+
+      const { data: authData } = await cloud.auth.getUser();
+      if (!authData.user) {
+        setOwnProfileId(null);
+        setFriendships([]);
+        return;
+      }
+      const [ownProfile, friendshipRows] = await Promise.all([
+        cloud
+          .from("blob_profiles")
+          .select("id")
+          .eq("owner_id", authData.user.id)
+          .maybeSingle(),
+        cloud
+          .from("blob_friendships")
+          .select(
+            "id,requester_profile_id,addressee_profile_id,status",
+          )
+          .order("created_at", { ascending: false }),
+      ]);
+      if (ownProfile.error) throw ownProfile.error;
+      if (friendshipRows.error) throw friendshipRows.error;
+      setOwnProfileId(ownProfile.data?.id ?? null);
+      setFriendships(
+        (friendshipRows.data ?? []) as CommonsFriendship[],
+      );
+    } catch (error) {
+      setCloudMessage(
+        error instanceof Error ? error.message : "The Commons could not refresh.",
+      );
+    } finally {
+      setCloudBusy(false);
+    }
+  }, []);
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const organism = loadOrganism();
@@ -729,6 +843,34 @@ export default function LiviCompanion() {
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!ready || !cloudConfigured()) return;
+    const cloud = getCloudClient();
+    let active = true;
+    void cloud.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      const user = data.session?.user;
+      setCloudUser(
+        user ? { id: user.id, email: user.email ?? null } : null,
+      );
+      void refreshCommons();
+    });
+    const {
+      data: { subscription },
+    } = cloud.auth.onAuthStateChange((_event, session) => {
+      if (!active) return;
+      const user = session?.user;
+      setCloudUser(
+        user ? { id: user.id, email: user.email ?? null } : null,
+      );
+      window.setTimeout(() => void refreshCommons(), 0);
+    });
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, [ready, refreshCommons]);
 
   useEffect(() => {
     if (!ready) return;
@@ -1356,6 +1498,371 @@ export default function LiviCompanion() {
     pet();
   }, [pet]);
 
+  const authenticateCloud = useCallback(
+    async (
+      mode: "create" | "signin",
+      email: string,
+      password: string,
+    ) => {
+      if (!cloudConfigured()) return;
+      setCloudBusy(true);
+      setCloudMessage("");
+      try {
+        const cloud = getCloudClient();
+        const result =
+          mode === "create"
+            ? await cloud.auth.signUp({ email, password })
+            : await cloud.auth.signInWithPassword({ email, password });
+        if (result.error) throw result.error;
+        if (result.data.session) {
+          setCloudUser({
+            id: result.data.user?.id ?? result.data.session.user.id,
+            email: result.data.user?.email ?? email,
+          });
+          setCloudMessage("Cloud recovery is connected.");
+          await refreshCommons();
+        } else {
+          setCloudMessage(
+            "Check your email to finish linking this recovery account.",
+          );
+        }
+      } catch (error) {
+        setCloudMessage(
+          error instanceof Error ? error.message : "Cloud sign-in failed.",
+        );
+      } finally {
+        setCloudBusy(false);
+      }
+    },
+    [refreshCommons],
+  );
+
+  const signOutCloud = useCallback(async () => {
+    if (!cloudConfigured()) return;
+    setCloudBusy(true);
+    const { error } = await getCloudClient().auth.signOut({ scope: "local" });
+    setCloudBusy(false);
+    if (error) {
+      setCloudMessage(error.message);
+      return;
+    }
+    setCloudUser(null);
+    setOwnProfileId(null);
+    setFriendships([]);
+    setCloudMessage("Signed out here. Local life continues.");
+  }, []);
+
+  const publishCloud = useCallback(
+    async (name: string, visibility: "private" | "public") => {
+      if (!cloudConfigured()) return;
+      setCloudBusy(true);
+      try {
+        const cloud = getCloudClient();
+        const {
+          data: { user },
+          error: userError,
+        } = await cloud.auth.getUser();
+        if (userError || !user) throw userError ?? new Error("Sign in first.");
+        const organism = organismRef.current;
+        const current = makeSnapshot(organism, behaviorRef.current);
+        const saveData = JSON.parse(JSON.stringify(organism)) as Organism;
+        const checksum = await checksumJson(saveData);
+        const slug = `livi-${Math.abs(organism.seed).toString(36)}-${user.id.slice(0, 5)}`.slice(
+          0,
+          32,
+        );
+        const profilePayload = {
+          owner_id: user.id,
+          slug,
+          display_name: name.trim().slice(0, 24) || "Livi",
+          visibility,
+          phenotype: current.phenotype,
+          life_phase: current.lifePhase,
+          age_minutes: organism.ageMinutes,
+          living_cells: current.living,
+          bond: current.bond,
+          room_id: organism.equippedRoom,
+          equipped_toy: organism.equippedToy,
+          achievements: organism.achievements,
+          traits: organism.traits,
+          updated_at: new Date().toISOString(),
+        };
+        const [profileResult, saveResult] = await Promise.all([
+          cloud
+            .from("blob_profiles")
+            .upsert(profilePayload, { onConflict: "owner_id" })
+            .select("id")
+            .single(),
+          cloud.from("cloud_saves").upsert(
+            {
+              owner_id: user.id,
+              save_version: 1,
+              save_data: saveData,
+              checksum,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "owner_id" },
+          ),
+        ]);
+        if (profileResult.error) throw profileResult.error;
+        if (saveResult.error) throw saveResult.error;
+        setOwnProfileId(profileResult.data.id);
+        setCloudMessage(
+          visibility === "public"
+            ? "Livi is backed up and visible in the Commons."
+            : "Private cloud recovery saved.",
+        );
+        await refreshCommons();
+      } catch (error) {
+        setCloudMessage(
+          error instanceof Error ? error.message : "Cloud save failed.",
+        );
+      } finally {
+        setCloudBusy(false);
+      }
+    },
+    [refreshCommons],
+  );
+
+  const restoreCloud = useCallback(async () => {
+    if (!cloudConfigured()) return;
+    setCloudBusy(true);
+    try {
+      const cloud = getCloudClient();
+      const {
+        data: { user },
+        error: userError,
+      } = await cloud.auth.getUser();
+      if (userError || !user) throw userError ?? new Error("Sign in first.");
+      const { data, error } = await cloud
+        .from("cloud_saves")
+        .select("save_data,checksum,updated_at")
+        .eq("owner_id", user.id)
+        .single();
+      if (error) throw error;
+      const checksum = await checksumJson(data.save_data);
+      if (checksum !== data.checksum) {
+        throw new Error("Cloud recovery checksum did not match.");
+      }
+      const organism = normalizeSavedOrganism(data.save_data);
+      organismRef.current = organism;
+      behaviorRef.current = "Remembering this device";
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(organism));
+      setSnapshot(makeSnapshot(organism, behaviorRef.current));
+      setCloudMessage(
+        `Cloud life restored from ${new Date(data.updated_at).toLocaleString()}.`,
+      );
+      setToast("Livi remembers the cloud recovery point.");
+    } catch (error) {
+      setCloudMessage(
+        error instanceof Error ? error.message : "Cloud restore failed.",
+      );
+    } finally {
+      setCloudBusy(false);
+    }
+  }, []);
+
+  const visitCommonsProfile = useCallback(
+    async (
+      profileId: number,
+      gift: "hello" | "nutrient" | "play",
+    ) => {
+      if (!cloudConfigured() || !ownProfileId) {
+        setCloudMessage("Publish your own blob before visiting.");
+        return;
+      }
+      setCloudBusy(true);
+      const { error } = await getCloudClient().from("blob_visits").insert({
+        host_profile_id: profileId,
+        visitor_profile_id: ownProfileId,
+        gift_type: gift,
+      });
+      setCloudBusy(false);
+      if (error) {
+        setCloudMessage(
+          error.code === "23505"
+            ? "Livi already visited that blob today."
+            : error.message,
+        );
+        return;
+      }
+      organismRef.current.joy = clamp(organismRef.current.joy + 0.025);
+      behaviorRef.current = "Remembering a Commons visit";
+      setCloudMessage("Visit delivered. The daily limit is verified by Commons time.");
+      refreshProgress("Livi returned from a Commons visit.");
+      await refreshCommons();
+    },
+    [ownProfileId, refreshCommons, refreshProgress],
+  );
+
+  const requestCommonsFriend = useCallback(
+    async (profileId: number) => {
+      if (!cloudConfigured() || !ownProfileId) return;
+      setCloudBusy(true);
+      const { error } = await getCloudClient()
+        .from("blob_friendships")
+        .insert({
+          requester_profile_id: ownProfileId,
+          addressee_profile_id: profileId,
+          status: "pending",
+        });
+      setCloudBusy(false);
+      setCloudMessage(
+        error
+          ? error.code === "23505"
+            ? "These blobs already have a friendship signal."
+            : error.message
+          : "Friendship signal sent.",
+      );
+      if (!error) await refreshCommons();
+    },
+    [ownProfileId, refreshCommons],
+  );
+
+  const answerCommonsFriend = useCallback(
+    async (
+      friendshipId: number,
+      answer: "accepted" | "declined",
+    ) => {
+      if (!cloudConfigured()) return;
+      setCloudBusy(true);
+      const { error } = await getCloudClient()
+        .from("blob_friendships")
+        .update({ status: answer, updated_at: new Date().toISOString() })
+        .eq("id", friendshipId);
+      setCloudBusy(false);
+      setCloudMessage(
+        error
+          ? error.message
+          : answer === "accepted"
+            ? "The blobs are now connected."
+            : "Friendship signal declined.",
+      );
+      if (!error) await refreshCommons();
+    },
+    [refreshCommons],
+  );
+
+  const exportOrganism = useCallback(() => {
+    const payload = JSON.stringify(
+      {
+        format: "livi-organism",
+        exportedAt: new Date().toISOString(),
+        organism: organismRef.current,
+      },
+      null,
+      2,
+    );
+    const url = URL.createObjectURL(
+      new Blob([payload], { type: "application/json" }),
+    );
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `livi-${Math.abs(organismRef.current.seed)
+      .toString(16)
+      .slice(-6)}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setCloudMessage("Local organism file downloaded.");
+  }, []);
+
+  const importOrganism = useCallback(async (file: File) => {
+    try {
+      const parsed = JSON.parse(await file.text()) as {
+        organism?: unknown;
+      };
+      const organism = normalizeSavedOrganism(parsed.organism ?? parsed);
+      organismRef.current = organism;
+      behaviorRef.current = "Remembering an imported life";
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(organism));
+      setSnapshot(makeSnapshot(organism, behaviorRef.current));
+      setCloudMessage("Organism file restored locally.");
+      setToast("Livi recognizes this recovered body.");
+    } catch (error) {
+      setCloudMessage(
+        error instanceof Error ? error.message : "Import failed.",
+      );
+    }
+  }, []);
+
+  const createCheckpoint = useCallback(() => {
+    checkpointRef.current = structuredClone(organismRef.current);
+    setCheckpointAvailable(true);
+    setToast("Simulation checkpoint created.");
+  }, []);
+
+  const restoreCheckpoint = useCallback(() => {
+    if (!checkpointRef.current) return;
+    const organism = structuredClone(checkpointRef.current);
+    organism.lastSeen = Date.now();
+    organismRef.current = organism;
+    behaviorRef.current = "Recovered from a lab checkpoint";
+    setSnapshot(makeSnapshot(organism, behaviorRef.current));
+    setToast("Checkpoint restored.");
+  }, []);
+
+  const advanceLabTime = useCallback((minutes: number) => {
+    const organism = simulateElapsed(organismRef.current, minutes);
+    behaviorRef.current =
+      minutes >= 30 * 1440 ? "Feeling a month pass" : "Feeling a day pass";
+    evaluateProgress(organism);
+    setSnapshot(makeSnapshot(organism, behaviorRef.current));
+    setToast(
+      minutes >= 30 * 1440
+        ? "Thirty simulated days passed."
+        : "One simulated day passed.",
+    );
+  }, []);
+
+  const starveLab = useCallback(() => {
+    const organism = organismRef.current;
+    organism.cells.forEach((cell, index) => {
+      if (!cell.alive) return;
+      const distance = Math.hypot(
+        (index % GRID) - CENTER,
+        Math.floor(index / GRID) - CENTER,
+      );
+      cell.energy = clamp(cell.energy * (distance > 5 ? 0.08 : 0.25));
+      cell.health = clamp(cell.health - (distance > 5 ? 0.16 : 0.06));
+    });
+    organism.joy = clamp(organism.joy - 0.2);
+    behaviorRef.current = "Enduring a starvation pulse";
+    setSnapshot(makeSnapshot(organism, behaviorRef.current));
+    setToast("Energy collapsed unevenly across the body.");
+  }, []);
+
+  const bloomLab = useCallback(() => {
+    const organism = organismRef.current;
+    organism.cells.forEach((cell) => {
+      if (!cell.alive) return;
+      cell.energy = Math.max(cell.energy, 0.97);
+      cell.health = Math.max(cell.health, 0.92);
+    });
+    for (let tick = 0; tick < 45; tick += 1) metabolize(organism, 0);
+    behaviorRef.current = "Blooming under laboratory nutrients";
+    evaluateProgress(organism);
+    setSnapshot(makeSnapshot(organism, behaviorRef.current));
+    setToast("A nutrient bloom drove real edge-cell division.");
+  }, []);
+
+  const dormancyLab = useCallback(() => {
+    const organism = organismRef.current;
+    organism.cells.forEach((cell, index) => {
+      if (index === CENTER * GRID + CENTER) {
+        cell.alive = true;
+        cell.energy = 0.05;
+        cell.health = 0.15;
+      } else {
+        cell.alive = false;
+        cell.energy = 0;
+        cell.health = 0;
+      }
+    });
+    behaviorRef.current = "Dormant in a legacy seed";
+    setSnapshot(makeSnapshot(organism, behaviorRef.current));
+    setToast("Only the recoverable nutrient core remains.");
+  }, []);
+
   const purchaseItem = useCallback(
     (itemId: string) => {
       const item = STORE_ITEMS.find(({ id }) => id === itemId);
@@ -1606,7 +2113,7 @@ export default function LiviCompanion() {
         </button>
         <button
           onClick={() => {
-            setHubTab("store");
+            setHubTab("commons");
             setLifeHubOpen(true);
           }}
           className="care-action"
@@ -1734,6 +2241,38 @@ export default function LiviCompanion() {
         onPurchase={purchaseItem}
         onEquip={equipItem}
         onInvite={inviteFriend}
+        commonsContent={
+          <CloudCommons
+            configured={cloudConfigured()}
+            connectedEmail={cloudUser?.email ?? null}
+            busy={cloudBusy}
+            message={cloudMessage}
+            profiles={commonsProfiles}
+            ownProfileId={ownProfileId}
+            friendships={friendships}
+            onAuth={authenticateCloud}
+            onSignOut={signOutCloud}
+            onPublish={publishCloud}
+            onRestore={restoreCloud}
+            onRefresh={refreshCommons}
+            onVisit={visitCommonsProfile}
+            onFriend={requestCommonsFriend}
+            onAnswerFriend={answerCommonsFriend}
+            onExport={exportOrganism}
+            onImport={importOrganism}
+          />
+        }
+        labContent={
+          <SimulationLab
+            checkpointAvailable={checkpointAvailable}
+            onCheckpoint={createCheckpoint}
+            onRestoreCheckpoint={restoreCheckpoint}
+            onAdvance={advanceLabTime}
+            onStarve={starveLab}
+            onBloom={bloomLab}
+            onDormancy={dormancyLab}
+          />
+        }
       />
 
       {welcomed && (

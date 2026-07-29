@@ -1,6 +1,6 @@
 {
   "name": "livi-organism",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "license": "CC0-1.0",
   "homepage": "https://livi-organism.vercel.app",
@@ -20,6 +20,7 @@
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
+    "@supabase/supabase-js": "2.111.0",
     "drizzle-orm": "0.45.2",
     "next": "16.2.6",
     "react": "19.2.6",

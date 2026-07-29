@@ -41,5 +41,6 @@ next-env.d.ts
 /dist/
 /dist.previous*/
 /.wrangler/
+/supabase/.temp/
 /outputs/
 /work/

@@ -41,7 +41,13 @@ export type UpdateEntry = {
   changes: string[];
 };
 
-export type HubTab = "friends" | "achievements" | "store" | "updates";
+export type HubTab =
+  | "commons"
+  | "friends"
+  | "achievements"
+  | "store"
+  | "lab"
+  | "updates";
 
 export const FEEDER_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
@@ -189,6 +195,17 @@ export const FRIENDS: FriendDefinition[] = [
 ];
 
 export const UPDATE_HISTORY: UpdateEntry[] = [
+  {
+    version: "0.4.0",
+    date: "July 29, 2026",
+    title: "The Commons opens",
+    changes: [
+      "Added optional cloud recovery without placing login in front of local play.",
+      "Added public, privacy-filtered blob profiles, visits, daily gifts, and friendship requests.",
+      "Added downloadable organism files and local restore imports.",
+      "Added a simulation laboratory for accelerated aging, starvation, blooming, dormancy, and checkpoints.",
+    ],
+  },
   {
     version: "0.3.0",
     date: "July 29, 2026",
