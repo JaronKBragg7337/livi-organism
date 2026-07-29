@@ -2,7 +2,6 @@
 .next
 .vinext
 .wrangler
-build
 dist
 dist.previous*
 node_modules
