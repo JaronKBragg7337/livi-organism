@@ -1,0 +1,1350 @@
+@import "tailwindcss";
+
+:root {
+  --ink: #061728;
+  --ink-soft: #36536a;
+  --glass: rgba(241, 252, 255, 0.82);
+  --glass-strong: rgba(248, 253, 255, 0.94);
+  --line: rgba(171, 220, 232, 0.42);
+  --aqua: #48d7e8;
+  --violet: #8e7af6;
+  --pink: #f49bcf;
+  --warm: #ffd68c;
+  --shadow: 0 22px 65px rgba(3, 20, 35, 0.24);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+  overscroll-behavior: none;
+}
+
+body {
+  background: #071724;
+  color: var(--ink);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+button:focus-visible,
+canvas:focus-visible {
+  outline: 3px solid rgba(111, 235, 246, 0.9);
+  outline-offset: 3px;
+}
+
+.livi-loading {
+  align-items: center;
+  background:
+    radial-gradient(circle at 50% 46%, rgba(100, 235, 255, 0.2), transparent 22%),
+    #071724;
+  color: rgba(229, 252, 255, 0.82);
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  gap: 18px;
+  justify-content: center;
+  letter-spacing: 0.16em;
+  min-height: 100dvh;
+  text-transform: uppercase;
+}
+
+.livi-loading__core {
+  animation: core-breathe 1.6s ease-in-out infinite;
+  background: white;
+  border-radius: 50%;
+  box-shadow:
+    0 0 12px 4px #fff,
+    0 0 42px 18px rgba(90, 225, 247, 0.7),
+    0 0 80px 32px rgba(153, 102, 255, 0.35);
+  height: 10px;
+  width: 10px;
+}
+
+.livi-shell {
+  background:
+    linear-gradient(180deg, rgba(6, 26, 40, 0.08), rgba(5, 25, 39, 0.3)),
+    #9db0b6;
+  height: 100dvh;
+  isolation: isolate;
+  min-height: 650px;
+  overflow: hidden;
+  position: relative;
+}
+
+.camera-feed,
+.habitat {
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  position: absolute;
+  width: 100%;
+  z-index: -3;
+}
+
+.camera-feed {
+  background: #071724;
+  opacity: 0;
+  transform: scaleX(1);
+  transition: opacity 0.5s ease;
+}
+
+.is-camera .camera-feed {
+  opacity: 1;
+}
+
+.habitat {
+  background:
+    radial-gradient(circle at 54% 28%, rgba(242, 255, 252, 0.95), transparent 21%),
+    linear-gradient(115deg, rgba(19, 43, 48, 0.82) 0 20%, transparent 20% 68%, rgba(15, 38, 42, 0.58) 68%),
+    linear-gradient(180deg, #9bb1ad 0 57%, #556c69 57% 58%, #253b38 100%);
+  filter: saturate(0.72);
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+
+.is-camera .habitat {
+  opacity: 0;
+}
+
+.habitat::before {
+  background:
+    linear-gradient(90deg, rgba(238, 248, 240, 0.86) 0 5%, transparent 5% 48%, rgba(245, 251, 243, 0.66) 48% 53%, transparent 53%),
+    linear-gradient(180deg, transparent 0 47%, rgba(234, 246, 238, 0.72) 47% 52%, transparent 52%),
+    linear-gradient(135deg, #b7c8c1, #6c817b);
+  box-shadow: 0 18px 55px rgba(14, 34, 34, 0.28);
+  content: "";
+  height: 43%;
+  left: 20%;
+  opacity: 0.68;
+  position: absolute;
+  top: 13%;
+  transform: perspective(700px) rotateY(3deg);
+  width: 51%;
+}
+
+.habitat__window {
+  background:
+    linear-gradient(90deg, transparent 48%, rgba(35, 72, 72, 0.35) 48% 52%, transparent 52%),
+    linear-gradient(180deg, transparent 48%, rgba(35, 72, 72, 0.35) 48% 52%, transparent 52%),
+    linear-gradient(155deg, rgba(245, 255, 252, 0.88), rgba(150, 187, 179, 0.66));
+  border: 8px solid rgba(53, 77, 74, 0.56);
+  box-shadow:
+    inset 0 0 36px rgba(251, 255, 252, 0.8),
+    0 8px 25px rgba(9, 29, 29, 0.24);
+  height: 29%;
+  position: absolute;
+  right: 8%;
+  top: 13%;
+  width: 19%;
+}
+
+.habitat__shelf {
+  background: linear-gradient(180deg, #637874, #253b38);
+  box-shadow: 0 12px 18px rgba(5, 22, 22, 0.35);
+  height: 10px;
+  position: absolute;
+  transform: perspective(400px) rotateX(18deg);
+}
+
+.habitat__shelf::before,
+.habitat__shelf::after {
+  background: linear-gradient(160deg, #7e928b, #384d49);
+  border-radius: 4px 4px 1px 1px;
+  bottom: 10px;
+  box-shadow: inset 0 6px 9px rgba(255, 255, 255, 0.1);
+  content: "";
+  position: absolute;
+}
+
+.habitat__shelf::before {
+  height: 42px;
+  left: 12%;
+  width: 35px;
+}
+
+.habitat__shelf::after {
+  height: 60px;
+  right: 16%;
+  width: 48px;
+}
+
+.habitat__shelf--one {
+  left: 4%;
+  top: 42%;
+  width: 15%;
+}
+
+.habitat__shelf--two {
+  right: 2%;
+  top: 55%;
+  width: 18%;
+}
+
+.habitat__floor {
+  background:
+    repeating-linear-gradient(91deg, transparent 0 95px, rgba(15, 37, 33, 0.11) 95px 97px),
+    linear-gradient(180deg, rgba(117, 138, 129, 0.38), rgba(27, 49, 45, 0.82));
+  bottom: 0;
+  height: 42%;
+  left: 0;
+  position: absolute;
+  transform: perspective(500px) rotateX(5deg);
+  transform-origin: bottom;
+  width: 100%;
+}
+
+.habitat__light {
+  background: radial-gradient(ellipse, rgba(233, 255, 250, 0.55), transparent 68%);
+  filter: blur(12px);
+  height: 42%;
+  left: 29%;
+  position: absolute;
+  top: 20%;
+  width: 45%;
+}
+
+.livi-shell::before {
+  background:
+    linear-gradient(180deg, rgba(1, 17, 28, 0.42), transparent 18% 64%, rgba(1, 12, 22, 0.38)),
+    radial-gradient(ellipse at 50% 56%, transparent 28%, rgba(1, 15, 24, 0.24) 86%);
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+}
+
+.topbar {
+  align-items: center;
+  color: rgba(242, 253, 255, 0.96);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  left: 0;
+  padding: max(22px, env(safe-area-inset-top)) 30px 0;
+  position: absolute;
+  top: 0;
+  width: 100%;
+  z-index: 8;
+}
+
+.brand {
+  align-items: flex-start;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-self: start;
+  padding: 0;
+}
+
+.brand__mark {
+  font-size: 35px;
+  font-weight: 620;
+  letter-spacing: 0.16em;
+  line-height: 0.9;
+}
+
+.brand__mark::after {
+  color: #86f1f4;
+  content: "˙";
+  margin-left: -0.08em;
+}
+
+.brand__subtitle {
+  color: rgba(221, 246, 249, 0.7);
+  font-family: var(--font-geist-mono);
+  font-size: 8px;
+  letter-spacing: 0.17em;
+  margin-top: 9px;
+  text-transform: uppercase;
+}
+
+.presence-pill {
+  align-items: center;
+  backdrop-filter: blur(16px);
+  background: rgba(8, 28, 41, 0.34);
+  border: 1px solid rgba(202, 242, 247, 0.18);
+  border-radius: 999px;
+  display: flex;
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  gap: 9px;
+  letter-spacing: 0.08em;
+  padding: 9px 14px;
+  text-transform: uppercase;
+}
+
+.presence-pill__pulse {
+  animation: signal-pulse 2s ease-out infinite;
+  background: #8df2db;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(141, 242, 219, 0.14);
+  height: 6px;
+  width: 6px;
+}
+
+.round-button {
+  align-items: center;
+  backdrop-filter: blur(16px);
+  background: rgba(8, 28, 41, 0.28);
+  border: 1px solid rgba(202, 242, 247, 0.18);
+  border-radius: 50%;
+  color: rgba(238, 253, 255, 0.9);
+  cursor: pointer;
+  display: flex;
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  height: 38px;
+  justify-content: center;
+  justify-self: end;
+  width: 38px;
+}
+
+.identity-card,
+.biology-card {
+  backdrop-filter: blur(20px) saturate(1.2);
+  background: linear-gradient(150deg, rgba(245, 253, 255, 0.88), rgba(227, 247, 251, 0.7));
+  border: 1px solid rgba(239, 255, 255, 0.56);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  position: absolute;
+  top: 125px;
+  z-index: 5;
+}
+
+.identity-card {
+  left: 30px;
+  padding: 19px 21px 17px;
+  width: 228px;
+}
+
+.eyebrow {
+  color: #4a7184;
+  display: block;
+  font-family: var(--font-geist-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.identity-card__title-row {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.identity-card h1 {
+  font-size: 31px;
+  font-weight: 520;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin: 0;
+}
+
+.identity-card p {
+  color: #49697b;
+  font-family: var(--font-geist-mono);
+  font-size: 9px;
+  line-height: 1.5;
+  margin: 7px 0 12px;
+  text-transform: uppercase;
+}
+
+.state-dot {
+  background: #78ddbf;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  box-shadow: 0 0 12px rgba(39, 206, 164, 0.66);
+  height: 10px;
+  width: 10px;
+}
+
+.state-dot--hungry {
+  background: #f1cf7c;
+}
+
+.state-dot--weakened,
+.state-dot--critical,
+.state-dot--dormant-seed {
+  background: #b28aa9;
+}
+
+.identity-card__behavior {
+  align-items: center;
+  border-top: 1px solid rgba(99, 147, 160, 0.2);
+  color: #31566b;
+  display: flex;
+  font-size: 11px;
+  gap: 7px;
+  padding-top: 11px;
+}
+
+.identity-card__behavior span {
+  color: var(--aqua);
+  font-size: 8px;
+}
+
+.biology-card {
+  padding: 18px 20px 16px;
+  right: 30px;
+  width: 244px;
+}
+
+.biology-card__header {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.biology-card__header strong {
+  display: block;
+  font-size: 17px;
+  font-weight: 580;
+  margin-top: 4px;
+}
+
+.biology-card__arrow {
+  align-items: center;
+  background: rgba(60, 199, 210, 0.12);
+  border-radius: 50%;
+  color: #318797;
+  display: flex;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
+}
+
+.vitality-row {
+  color: #537386;
+  display: flex;
+  font-size: 10px;
+  justify-content: space-between;
+  margin-top: 14px;
+}
+
+.vitality-row strong {
+  color: #285a6a;
+  font-family: var(--font-geist-mono);
+}
+
+.meter {
+  background: rgba(66, 119, 134, 0.12);
+  border-radius: 99px;
+  height: 5px;
+  margin-top: 7px;
+  overflow: hidden;
+}
+
+.meter span {
+  background: linear-gradient(90deg, var(--aqua), var(--violet), var(--pink));
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+  transition: width 0.7s ease;
+}
+
+.biology-card__metrics {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: 14px;
+}
+
+.biology-card__metrics div {
+  border-left: 1px solid rgba(76, 128, 143, 0.18);
+  padding-left: 9px;
+}
+
+.biology-card__metrics div:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
+.biology-card__metrics strong,
+.biology-card__metrics span {
+  display: block;
+}
+
+.biology-card__metrics strong {
+  font-family: var(--font-geist-mono);
+  font-size: 14px;
+  font-weight: 550;
+}
+
+.biology-card__metrics span {
+  color: #5c7a8b;
+  font-size: 8px;
+  margin-top: 3px;
+  white-space: nowrap;
+}
+
+.organism-stage {
+  inset: 0;
+  position: absolute;
+  z-index: 2;
+}
+
+.organism-canvas {
+  cursor: crosshair;
+  height: 100%;
+  inset: 0;
+  position: absolute;
+  touch-action: none;
+  width: 100%;
+}
+
+.field-reticle {
+  border: 1px solid rgba(195, 246, 246, 0.16);
+  border-radius: 50%;
+  height: min(51vw, 51vh);
+  left: 50%;
+  opacity: 0.7;
+  pointer-events: none;
+  position: absolute;
+  top: 56%;
+  transform: translate(-50%, -50%);
+  width: min(51vw, 51vh);
+}
+
+.field-reticle::before,
+.field-reticle::after {
+  border: 1px dashed rgba(195, 246, 246, 0.12);
+  border-radius: 50%;
+  content: "";
+  inset: 12%;
+  position: absolute;
+}
+
+.field-reticle::after {
+  inset: 27%;
+}
+
+.field-reticle span {
+  background: rgba(207, 251, 250, 0.4);
+  height: 1px;
+  position: absolute;
+  width: 11px;
+}
+
+.field-reticle span:nth-child(1) {
+  left: -6px;
+  top: 50%;
+}
+
+.field-reticle span:nth-child(2) {
+  right: -6px;
+  top: 50%;
+}
+
+.field-reticle span:nth-child(3) {
+  left: calc(50% - 5px);
+  top: 0;
+  transform: rotate(90deg);
+}
+
+.field-reticle span:nth-child(4) {
+  bottom: 0;
+  left: calc(50% - 5px);
+  transform: rotate(90deg);
+}
+
+.stage-hint {
+  align-items: center;
+  bottom: 169px;
+  color: rgba(231, 251, 252, 0.86);
+  display: flex;
+  font-size: 10px;
+  gap: 9px;
+  left: 50%;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+  position: absolute;
+  text-shadow: 0 2px 12px rgba(0, 16, 26, 0.8);
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.stage-hint__gesture {
+  align-items: center;
+  border: 1px solid rgba(223, 253, 252, 0.28);
+  border-radius: 50%;
+  display: flex;
+  height: 24px;
+  justify-content: center;
+  width: 24px;
+}
+
+.care-toast {
+  align-items: center;
+  backdrop-filter: blur(15px);
+  background: rgba(5, 29, 42, 0.38);
+  border: 1px solid rgba(198, 244, 245, 0.14);
+  border-radius: 999px;
+  bottom: 109px;
+  color: rgba(231, 251, 252, 0.88);
+  display: flex;
+  font-size: 10px;
+  gap: 9px;
+  left: 50%;
+  max-width: min(480px, calc(100% - 40px));
+  overflow: hidden;
+  padding: 8px 14px;
+  position: absolute;
+  text-overflow: ellipsis;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  z-index: 6;
+}
+
+.care-toast__core {
+  background: #ffe7a8;
+  border-radius: 50%;
+  box-shadow: 0 0 9px #ffb980;
+  flex: 0 0 auto;
+  height: 6px;
+  width: 6px;
+}
+
+.care-dock {
+  align-items: stretch;
+  backdrop-filter: blur(24px) saturate(1.25);
+  background: linear-gradient(145deg, rgba(246, 253, 255, 0.92), rgba(221, 243, 248, 0.82));
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  border-radius: 24px;
+  bottom: max(22px, env(safe-area-inset-bottom));
+  box-shadow: 0 18px 60px rgba(0, 17, 27, 0.38);
+  display: flex;
+  height: 73px;
+  left: 50%;
+  padding: 7px 9px;
+  position: absolute;
+  transform: translateX(-50%);
+  z-index: 8;
+}
+
+.care-action {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 17px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  font-size: 9px;
+  gap: 4px;
+  justify-content: center;
+  min-width: 72px;
+  padding: 3px 12px;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.care-action:hover {
+  background: rgba(90, 206, 217, 0.1);
+  transform: translateY(-2px);
+}
+
+.care-action:active {
+  transform: translateY(1px) scale(0.97);
+}
+
+.care-action--primary {
+  background: linear-gradient(145deg, #dffbfb, #e9e4ff);
+}
+
+.care-action.is-active {
+  background: rgba(75, 201, 210, 0.16);
+  color: #17758a;
+}
+
+.care-action__icon {
+  align-items: center;
+  border-radius: 50%;
+  display: flex;
+  font-size: 18px;
+  height: 31px;
+  justify-content: center;
+  width: 31px;
+}
+
+.care-action__icon--feed {
+  background: #fff2d2;
+  color: #e69769;
+}
+
+.care-action__icon--pet {
+  background: #f8ddf1;
+  color: #d769ab;
+}
+
+.care-action__icon--play {
+  background: #e4e1ff;
+  color: #7561e9;
+}
+
+.care-action__icon--ar {
+  background: #d7f4f3;
+  color: #258e9a;
+}
+
+.care-dock__rule {
+  background: rgba(71, 117, 129, 0.18);
+  margin: 10px 2px;
+  width: 1px;
+}
+
+.biology-tab {
+  align-items: center;
+  backdrop-filter: blur(18px);
+  background: rgba(239, 251, 252, 0.83);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 16px;
+  bottom: 28px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  display: flex;
+  gap: 11px;
+  left: 30px;
+  padding: 11px 14px;
+  position: absolute;
+  text-align: left;
+  z-index: 7;
+}
+
+.biology-tab__cells {
+  align-items: center;
+  background: rgba(92, 213, 219, 0.15);
+  border-radius: 11px;
+  color: #3db4bd;
+  display: flex;
+  font-size: 20px;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.biology-tab small,
+.biology-tab span {
+  display: block;
+}
+
+.biology-tab small {
+  color: #628291;
+  font-family: var(--font-geist-mono);
+  font-size: 7px;
+  letter-spacing: 0.14em;
+  margin-bottom: 3px;
+}
+
+.biology-tab span {
+  color: #416476;
+  font-size: 9px;
+}
+
+.biology-tab strong {
+  color: #278796;
+  font-size: 9px;
+  font-weight: 600;
+  margin-left: 10px;
+}
+
+.camera-message {
+  background: rgba(5, 29, 42, 0.76);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 9px;
+  bottom: 111px;
+  color: white;
+  font-size: 10px;
+  left: 50%;
+  margin: 0;
+  padding: 8px 11px;
+  position: absolute;
+  transform: translateX(-50%);
+  z-index: 9;
+}
+
+.sheet-backdrop,
+.welcome-backdrop {
+  align-items: center;
+  backdrop-filter: blur(12px);
+  background: rgba(1, 15, 25, 0.62);
+  display: flex;
+  inset: 0;
+  justify-content: flex-end;
+  padding: 18px;
+  position: absolute;
+  z-index: 20;
+}
+
+.biology-sheet {
+  animation: sheet-in 0.4s cubic-bezier(0.2, 0.75, 0.25, 1);
+  background:
+    radial-gradient(circle at 85% 9%, rgba(110, 226, 234, 0.16), transparent 26%),
+    #f3fbfc;
+  border: 1px solid white;
+  border-radius: 28px;
+  box-shadow: 0 30px 100px rgba(0, 8, 17, 0.5);
+  max-height: calc(100dvh - 36px);
+  max-width: 540px;
+  overflow: auto;
+  padding: 34px;
+  position: relative;
+  width: 100%;
+}
+
+.sheet-close {
+  align-items: center;
+  background: rgba(53, 107, 119, 0.08);
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  font-size: 22px;
+  height: 36px;
+  justify-content: center;
+  position: absolute;
+  right: 22px;
+  top: 20px;
+  width: 36px;
+}
+
+.biology-sheet h2 {
+  font-size: clamp(27px, 4vw, 39px);
+  font-weight: 480;
+  letter-spacing: -0.045em;
+  line-height: 1.02;
+  margin: 12px 0;
+  max-width: 390px;
+}
+
+.biology-sheet__lede {
+  color: #517183;
+  font-size: 13px;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 450px;
+}
+
+.system-grid {
+  display: grid;
+  gap: 9px;
+  margin-top: 25px;
+}
+
+.system-grid article {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(87, 151, 166, 0.13);
+  border-radius: 16px;
+  display: flex;
+  gap: 14px;
+  padding: 14px;
+}
+
+.system-grid__glyph {
+  align-items: center;
+  border-radius: 13px;
+  display: flex;
+  flex: 0 0 auto;
+  font-size: 23px;
+  height: 46px;
+  justify-content: center;
+  width: 46px;
+}
+
+.system-grid__glyph--body {
+  background: #d8f6f4;
+  color: #3eb8bd;
+}
+
+.system-grid__glyph--mind {
+  background: #e8e3ff;
+  color: #816bea;
+}
+
+.system-grid__glyph--bond {
+  background: #fbe0ef;
+  color: #d56ba4;
+}
+
+.system-grid small,
+.system-grid strong,
+.system-grid p {
+  display: block;
+}
+
+.system-grid small,
+.trait-panel small {
+  color: #698693;
+  font-family: var(--font-geist-mono);
+  font-size: 8px;
+  letter-spacing: 0.13em;
+}
+
+.system-grid strong {
+  font-size: 13px;
+  margin-top: 3px;
+}
+
+.system-grid p {
+  color: #617b88;
+  font-size: 10px;
+  line-height: 1.45;
+  margin: 3px 0 0;
+}
+
+.trait-panel {
+  background: #0a2635;
+  border-radius: 19px;
+  color: white;
+  margin-top: 14px;
+  padding: 18px;
+}
+
+.trait-panel__heading {
+  align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.trait-panel__heading small,
+.trait-panel__heading strong {
+  display: block;
+}
+
+.trait-panel__heading small {
+  color: #80abb8;
+}
+
+.trait-panel__heading strong {
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.trait-panel__heading > span:last-child {
+  color: #7c9ba6;
+  font-size: 8px;
+  margin-top: 3px;
+}
+
+.trait {
+  align-items: center;
+  display: grid;
+  font-size: 9px;
+  gap: 10px;
+  grid-template-columns: 72px 1fr 24px;
+  margin-top: 9px;
+}
+
+.trait > div {
+  background: rgba(158, 221, 228, 0.13);
+  border-radius: 99px;
+  height: 4px;
+  overflow: hidden;
+}
+
+.trait i {
+  background: linear-gradient(90deg, var(--aqua), var(--violet), var(--pink));
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+}
+
+.trait strong {
+  color: #9ec3ca;
+  font-family: var(--font-geist-mono);
+  font-size: 8px;
+  text-align: right;
+}
+
+.biology-sheet__footer {
+  color: #68848f;
+  display: flex;
+  flex-wrap: wrap;
+  font-family: var(--font-geist-mono);
+  font-size: 8px;
+  gap: 8px 16px;
+  margin-top: 15px;
+}
+
+.welcome-backdrop {
+  justify-content: center;
+  z-index: 30;
+}
+
+.welcome-card {
+  animation: welcome-in 0.7s cubic-bezier(0.16, 0.8, 0.25, 1);
+  background:
+    radial-gradient(circle at 50% 14%, rgba(105, 229, 239, 0.22), transparent 27%),
+    linear-gradient(150deg, rgba(251, 255, 255, 0.98), rgba(226, 244, 249, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.84);
+  border-radius: 30px;
+  box-shadow: 0 35px 120px rgba(0, 8, 18, 0.58);
+  max-width: 430px;
+  padding: 35px 38px 29px;
+  text-align: center;
+  width: 100%;
+}
+
+.welcome-card__specimen {
+  animation: specimen-float 3.5s ease-in-out infinite;
+  display: block;
+  height: 86px;
+  margin: 0 auto 20px;
+  position: relative;
+  width: 90px;
+}
+
+.welcome-card__specimen::before {
+  background: linear-gradient(145deg, rgba(69, 221, 235, 0.86), rgba(132, 106, 239, 0.72));
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 47% 53% 45% 55% / 43% 44% 56% 57%;
+  box-shadow:
+    inset 5px 7px 15px rgba(255, 255, 255, 0.55),
+    0 12px 28px rgba(63, 157, 191, 0.25);
+  content: "";
+  inset: 8px 5px 4px;
+  position: absolute;
+}
+
+.welcome-card__specimen::after {
+  background: #fff5bd;
+  border-radius: 50%;
+  box-shadow:
+    0 0 8px white,
+    0 0 22px 9px rgba(255, 177, 151, 0.85),
+    0 0 38px 15px rgba(185, 105, 250, 0.36);
+  content: "";
+  height: 7px;
+  left: 42px;
+  position: absolute;
+  top: 48px;
+  width: 7px;
+}
+
+.welcome-card__specimen i {
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(233, 255, 255, 0.72);
+  border-radius: 50%;
+  height: 19px;
+  position: absolute;
+  width: 19px;
+  z-index: 1;
+}
+
+.welcome-card__specimen i:nth-child(1) {
+  left: 18px;
+  top: 27px;
+}
+
+.welcome-card__specimen i:nth-child(2) {
+  right: 17px;
+  top: 30px;
+}
+
+.welcome-card__specimen i:nth-child(3) {
+  left: 35px;
+  top: 11px;
+}
+
+.welcome-card__specimen b {
+  background: #061d34;
+  border-radius: 50%;
+  box-shadow: 24px 1px 0 #061d34;
+  height: 8px;
+  left: 29px;
+  position: absolute;
+  top: 37px;
+  width: 8px;
+  z-index: 2;
+}
+
+.welcome-card .eyebrow {
+  text-align: center;
+}
+
+.welcome-card h2 {
+  font-size: clamp(30px, 6vw, 43px);
+  font-weight: 470;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  margin: 13px 0;
+}
+
+.welcome-card > p {
+  color: #557385;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0 auto;
+  max-width: 330px;
+}
+
+.welcome-card__facts {
+  border-bottom: 1px solid rgba(69, 121, 138, 0.14);
+  border-top: 1px solid rgba(69, 121, 138, 0.14);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 23px 0;
+  padding: 14px 0;
+}
+
+.welcome-card__facts span,
+.welcome-card__facts strong {
+  display: block;
+}
+
+.welcome-card__facts span {
+  color: #66818e;
+  font-size: 8px;
+}
+
+.welcome-card__facts strong {
+  color: #183f53;
+  font-family: var(--font-geist-mono);
+  font-size: 15px;
+  margin-bottom: 3px;
+}
+
+.welcome-card > button {
+  background: linear-gradient(100deg, #2a98a7, #7966da);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: 0 12px 30px rgba(88, 102, 203, 0.25);
+  color: white;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 13px 33px;
+}
+
+.welcome-card > small {
+  color: #78919b;
+  display: block;
+  font-size: 8px;
+  margin-top: 14px;
+}
+
+@keyframes core-breathe {
+  50% {
+    transform: scale(1.3);
+  }
+}
+
+@keyframes signal-pulse {
+  70% {
+    box-shadow: 0 0 0 9px rgba(141, 242, 219, 0);
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+}
+
+@keyframes welcome-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+  }
+}
+
+@keyframes specimen-float {
+  50% {
+    transform: translateY(-6px) rotate(1deg);
+  }
+}
+
+@media (max-width: 760px) {
+  .livi-shell {
+    min-height: 600px;
+  }
+
+  .topbar {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .brand__mark {
+    font-size: 27px;
+  }
+
+  .brand__subtitle {
+    display: none;
+  }
+
+  .presence-pill {
+    font-size: 8px;
+    padding: 7px 10px;
+  }
+
+  .identity-card,
+  .biology-card {
+    top: 84px;
+  }
+
+  .identity-card {
+    left: 14px;
+    padding: 13px 14px 12px;
+    width: 166px;
+  }
+
+  .identity-card h1 {
+    font-size: 24px;
+  }
+
+  .identity-card p {
+    font-size: 7px;
+    margin: 6px 0 8px;
+  }
+
+  .identity-card__behavior {
+    font-size: 8px;
+    padding-top: 8px;
+  }
+
+  .biology-card {
+    padding: 13px 14px 12px;
+    right: 14px;
+    width: 151px;
+  }
+
+  .biology-card__header strong {
+    font-size: 13px;
+  }
+
+  .biology-card__arrow {
+    height: 25px;
+    width: 25px;
+  }
+
+  .vitality-row {
+    margin-top: 10px;
+  }
+
+  .biology-card__metrics {
+    gap: 4px;
+    margin-top: 10px;
+  }
+
+  .biology-card__metrics strong {
+    font-size: 10px;
+  }
+
+  .biology-card__metrics span {
+    font-size: 6px;
+  }
+
+  .biology-card__metrics div {
+    padding-left: 5px;
+  }
+
+  .field-reticle {
+    height: min(77vw, 48vh);
+    top: 58%;
+    width: min(77vw, 48vh);
+  }
+
+  .stage-hint {
+    bottom: calc(max(18px, env(safe-area-inset-bottom)) + 111px);
+    font-size: 8px;
+  }
+
+  .care-toast {
+    bottom: calc(max(18px, env(safe-area-inset-bottom)) + 78px);
+    font-size: 8px;
+  }
+
+  .care-dock {
+    border-radius: 20px;
+    bottom: max(14px, env(safe-area-inset-bottom));
+    height: 65px;
+    padding: 5px;
+  }
+
+  .care-action {
+    font-size: 8px;
+    min-width: 61px;
+    padding: 2px 8px;
+  }
+
+  .care-action__icon {
+    font-size: 16px;
+    height: 28px;
+    width: 28px;
+  }
+
+  .biology-tab {
+    display: none;
+  }
+
+  .biology-sheet {
+    border-radius: 25px 25px 0 0;
+    max-height: 88dvh;
+    padding: 28px 22px calc(24px + env(safe-area-inset-bottom));
+  }
+
+  .sheet-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .trait-panel__heading > span:last-child {
+    display: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .identity-card {
+    width: 151px;
+  }
+
+  .biology-card {
+    width: 142px;
+  }
+
+  .care-action {
+    min-width: 55px;
+    padding-inline: 5px;
+  }
+
+  .welcome-card {
+    padding: 27px 23px 23px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+}
