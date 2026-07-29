@@ -38,8 +38,9 @@ A deterministic, versioned simulation with no rendering dependencies.
   rate.
 - Seeded random number generator so saves can be replayed and bugs reproduced.
 
-The browser proof currently uses a 23 × 23 field. A Unity MVP should begin near
-32 × 32 and profile on the lowest supported phone before increasing it.
+The browser proof currently uses a 35 × 35 field, with older 23 × 23 saves
+center-migrated automatically. A Unity MVP should begin near 32 × 32 and profile
+on the lowest supported phone before increasing it.
 
 ### 2. Adaptive field
 

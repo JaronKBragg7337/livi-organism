@@ -8,8 +8,9 @@ import {
   useState,
 } from "react";
 
-const GRID = 23;
+const GRID = 35;
 const CENTER = Math.floor(GRID / 2);
+const MAX_LIVING = Math.floor(GRID * GRID * 0.72);
 const STORAGE_KEY = "livi-organism-v1";
 const WELCOME_KEY = "livi-welcomed-v1";
 
@@ -142,6 +143,38 @@ function createOrganism(seed = Math.floor(Math.random() * 2_000_000_000)): Organ
 
 function livingCells(organism: Organism) {
   return organism.cells.reduce((count, cell) => count + Number(cell.alive), 0);
+}
+
+function migrateCellField(organism: Organism) {
+  if (organism.cells.length === GRID * GRID) return organism;
+
+  const oldGrid = Math.round(Math.sqrt(organism.cells.length));
+  if (oldGrid * oldGrid !== organism.cells.length) return createOrganism(organism.seed);
+
+  const random = mulberry32(organism.seed ^ 0x51f15e);
+  const migrated = Array.from({ length: GRID * GRID }, () => ({
+    alive: false,
+    energy: 0,
+    health: 0,
+    age: 0,
+    phase: random() * Math.PI * 2,
+    hue: (random() - 0.5) * 20,
+  }));
+  const sourceStart = Math.max(0, Math.floor((oldGrid - GRID) / 2));
+  const destinationStart = Math.max(0, Math.floor((GRID - oldGrid) / 2));
+  const copySize = Math.min(oldGrid, GRID);
+
+  for (let y = 0; y < copySize; y += 1) {
+    for (let x = 0; x < copySize; x += 1) {
+      const sourceIndex = (y + sourceStart) * oldGrid + x + sourceStart;
+      const destinationIndex =
+        (y + destinationStart) * GRID + x + destinationStart;
+      migrated[destinationIndex] = organism.cells[sourceIndex];
+    }
+  }
+
+  organism.cells = migrated;
+  return organism;
 }
 
 function averages(organism: Organism) {
@@ -288,14 +321,10 @@ function loadOrganism() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return createOrganism();
     const parsed = JSON.parse(raw) as Organism;
-    if (
-      parsed.version !== 1 ||
-      !Array.isArray(parsed.cells) ||
-      parsed.cells.length !== GRID * GRID
-    ) {
+    if (parsed.version !== 1 || !Array.isArray(parsed.cells)) {
       return createOrganism();
     }
-    return applyOfflineLife(parsed);
+    return applyOfflineLife(migrateCellField(parsed));
   } catch {
     return createOrganism();
   }
@@ -346,7 +375,7 @@ function metabolize(organism: Organism, movementCost: number) {
     }
   });
 
-  if (meanEnergy > 0.67 && living < 250) {
+  if (meanEnergy > 0.67 && living < MAX_LIVING) {
     const candidates: { empty: number; parent: number }[] = [];
     organism.cells.forEach((cell, index) => {
       if (cell.alive) return;
@@ -422,6 +451,29 @@ function traitLabel(key: keyof Traits) {
     locomotion: "Locomotion",
   };
   return labels[key];
+}
+
+function findNearestFoodIndex(
+  foods: FoodDrop[],
+  position: { x: number; y: number },
+  width: number,
+  height: number,
+) {
+  let nearestIndex = -1;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+
+  foods.forEach((food, index) => {
+    const distance = Math.hypot(
+      (food.x - position.x) * width,
+      (food.y - position.y) * height,
+    );
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      nearestIndex = index;
+    }
+  });
+
+  return nearestIndex;
 }
 
 export default function LiviCompanion() {
@@ -654,7 +706,14 @@ export default function LiviCompanion() {
       const position = positionRef.current;
       const foods = foodRef.current;
       const mean = averages(organism);
-      const activeFood = foods[0];
+      const activeFoodIndex = findNearestFoodIndex(
+        foods,
+        position,
+        width,
+        height,
+      );
+      const activeFood =
+        activeFoodIndex >= 0 ? foods[activeFoodIndex] : undefined;
 
       if (activeFood) {
         position.targetX = activeFood.x;
@@ -698,7 +757,7 @@ export default function LiviCompanion() {
           (activeFood.y - position.y) * height,
         );
         if (distance < Math.max(42, Math.sqrt(mean.living) * 5.8)) {
-          foods.shift();
+          foods.splice(activeFoodIndex, 1);
           distributeMeal(activeFood.nutrition);
         }
       }
