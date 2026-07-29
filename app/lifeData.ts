@@ -1,4 +1,4 @@
-export type StoreCategory = "feeder" | "toy" | "room" | "decor";
+export type StoreCategory = "feeder" | "toy" | "room" | "decor" | "medicine";
 
 export type StoreItem = {
   id: string;
@@ -8,6 +8,118 @@ export type StoreItem = {
   description: string;
   effect: string;
   glyph: string;
+  consumable?: boolean;
+  maxUsesPerLife?: number;
+  rarity?: "common" | "rare" | "emergency";
+};
+
+export type SyncStatus =
+  | "local"
+  | "syncing"
+  | "synced"
+  | "offline"
+  | "conflict"
+  | "error";
+
+export type SyncConflictSnapshot = {
+  id: string;
+  source: "local" | "cloud";
+  savedAt: number;
+  deviceName: string;
+  generation: number;
+  livingCells: number;
+  bond: number;
+  note: string;
+};
+
+export type SaveHistoryEntry = {
+  id: string;
+  savedAt: number;
+  reason: string;
+  generation: number;
+  livingCells: number;
+  bond: number;
+  lifePhase: string;
+  deviceName?: string;
+};
+
+export type MemoryEpisode = {
+  id: string;
+  occurredAt: number;
+  kind:
+    | "birth"
+    | "bond"
+    | "absence"
+    | "near-death"
+    | "revival"
+    | "bloom"
+    | "collapse"
+    | "mutation"
+    | "friend"
+    | "legacy";
+  title: string;
+  detail: string;
+  generation: number;
+  valence: "warm" | "quiet" | "difficult" | "transformative";
+};
+
+export type RoutineSummary = {
+  date: string;
+  meals: number;
+  pets: number;
+  plays: number;
+  minutesTogether: number;
+  longestAbsenceMinutes: number;
+  careStyle: "calm" | "steady" | "playful" | "chaotic" | "distant";
+  favoriteToy?: string;
+  favoriteRoom?: string;
+  favoriteFriend?: string;
+};
+
+export type GerminationState = {
+  livingCells: number;
+  status: "stable" | "dire" | "germinating" | "reviving";
+  progress: number;
+  mealsGiven: number;
+  mealsNeeded: number;
+  message: string;
+  scaffoldCells?: number;
+  scaffoldNutrition?: number;
+  scaffoldProtectionMinutes?: number;
+};
+
+export type VitalInventory = {
+  pulseCapsules: number;
+  freePulseAvailable: boolean;
+  monthlightSerums: number;
+  monthlightUses: number;
+  monthlightUseCap: number;
+  canUseMonthlight: boolean;
+  canAcquireMonthlight: boolean;
+  monthlightReason: string;
+};
+
+export type LegacyGeneration = {
+  generation: number;
+  name: string;
+  bornAt: number;
+  endedAt?: number;
+  endCause?: string;
+  phenotype: string;
+  highestBond: number;
+  achievementCount: number;
+  rememberedEpisodes: number;
+  inheritedTraits: string[];
+};
+
+export type LegacyTransition = {
+  available: boolean;
+  seedReady: boolean;
+  inheritedBond: number;
+  inheritedAchievements: number;
+  inheritedMemories: number;
+  inheritedTraits: string[];
+  message: string;
 };
 
 export type AchievementDefinition = {
@@ -43,6 +155,8 @@ export type UpdateEntry = {
 
 export type HubTab =
   | "commons"
+  | "memory"
+  | "lineage"
   | "friends"
   | "achievements"
   | "store"
@@ -87,6 +201,31 @@ export const STORE_ITEMS: StoreItem[] = [
     description: "A warm resting place that helps weak cells recover.",
     effect: "Small recovery bonus while resting",
     glyph: "⌒",
+  },
+  {
+    id: "pulse-capsule",
+    name: "Pulse Capsule",
+    category: "medicine",
+    price: 45,
+    description:
+      "Coaxes a critically small body into a protected stem-cell scaffold.",
+    effect: "Emergency bridge back to real cellular growth · first dose free",
+    glyph: "ϟ",
+    consumable: true,
+    rarity: "emergency",
+  },
+  {
+    id: "monthlight-serum",
+    name: "Monthlight Serum",
+    category: "medicine",
+    price: 180,
+    description:
+      "A rare metabolic treatment that grants about 30 additional living days.",
+    effect: "Adds 30 days · limited to two doses in a lifetime",
+    glyph: "☾",
+    consumable: true,
+    maxUsesPerLife: 2,
+    rarity: "rare",
   },
   {
     id: "moss-room",
@@ -195,6 +334,19 @@ export const FRIENDS: FriendDefinition[] = [
 ];
 
 export const UPDATE_HISTORY: UpdateEntry[] = [
+  {
+    version: "0.5.0",
+    date: "July 29, 2026",
+    title: "What a life carries",
+    changes: [
+      "A healthy lone seed can now germinate through careful feeding, ending the one-cell deadlock without erasing the danger.",
+      "Added the Pulse Capsule emergency scaffold, with one free lifeline and later doses earned only with Motes.",
+      "Added optional accounts, automatic cloud history, explicit conflict choices, and device-safe recovery while preserving instant local play.",
+      "Added permanent episodic memories, daily care-routine summaries, and privacy boundaries that keep camera frames and location on-device.",
+      "Added legacy generations that inherit bond, personality, achievements, and formative memories.",
+      "Added the rare Monthlight Serum for a capped 30-day lifespan extension with no real-money purchases.",
+    ],
+  },
   {
     version: "0.4.0",
     date: "July 29, 2026",

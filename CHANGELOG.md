@@ -3,6 +3,41 @@
 All notable changes to LIVI are preserved here and in the app under **Life
 Hub → History**.
 
+## [0.5.0] - 2026-07-29
+
+### Added
+
+- Natural single-cell seed germination: a healthy, well-fed lone core can bud
+  back into a viable cellular scaffold without an item.
+- The earned-Mote Pulse Capsule emergency treatment, including one free first
+  dose, temporary stem-cell protection, a visible biological scar, and a
+  permanent revival memory.
+- Revisioned automatic cloud continuity with device-aware conflict handling,
+  immutable restore history, idempotent writes, and local-first offline safety.
+- Client-encrypted private save envelopes with recovery-key and enrolled-device
+  access paths; public Commons traits remain deliberately separate.
+- Permanent episodic memories and compact daily routine memories covering care,
+  preferences, absences, friends, collapse, recovery, blooms, and mutation.
+- Legacy generations that carry forward personality, bond, achievements,
+  formative memories, and lineage while beginning in a genuinely new body.
+- The rare Monthlight Serum, purchasable only with earned Motes and capped at
+  two 30-day lifespan extensions per generation.
+
+### Changed
+
+- Cloud recovery now preserves divergent timelines instead of silently choosing
+  the last writer.
+- Accounts remain optional and no-login local play still starts instantly.
+- Starvation collapse, emergency revival, natural old age, and generational
+  succession now have distinct biological rules and memories.
+
+### Privacy
+
+- Camera frames, room imagery, audio, and precise location remain device-local
+  and are excluded from memory and sync payloads.
+- New cloud records are owner-scoped with row-level security and explicit Data
+  API privileges.
+
 ## [0.4.0] - 2026-07-29
 
 ### Added

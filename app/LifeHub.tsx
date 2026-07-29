@@ -7,8 +7,19 @@ import {
   STORE_ITEMS,
   UPDATE_HISTORY,
   type BlobFriendState,
+  type GerminationState,
   type HubTab,
+  type LegacyGeneration,
+  type LegacyTransition,
+  type MemoryEpisode,
+  type RoutineSummary,
+  type VitalInventory,
 } from "./lifeData";
+import {
+  LineagePanel,
+  MemoryJournal,
+  RecoveryPanel,
+} from "./LivingContinuity";
 
 type LifeHubProps = {
   open: boolean;
@@ -26,15 +37,26 @@ type LifeHubProps = {
   feederStatus: string;
   commonsContent: ReactNode;
   labContent: ReactNode;
+  memoryEpisodes?: MemoryEpisode[];
+  routineSummaries?: RoutineSummary[];
+  germination?: GerminationState;
+  vitalInventory?: VitalInventory;
+  generations?: LegacyGeneration[];
+  legacyTransition?: LegacyTransition;
   onClose: () => void;
   onTab: (tab: HubTab) => void;
   onPurchase: (itemId: string) => void;
   onEquip: (itemId: string) => void;
   onInvite: (friendId: string) => void;
+  onAcquireVitalItem?: (itemId: "pulse-capsule" | "monthlight-serum") => void;
+  onUseVitalItem?: (itemId: "pulse-capsule" | "monthlight-serum") => void;
+  onBeginLegacy?: () => void;
 };
 
 const TABS: { id: HubTab; label: string }[] = [
   { id: "commons", label: "Commons" },
+  { id: "memory", label: "Memory" },
+  { id: "lineage", label: "Lineage" },
   { id: "store", label: "Store" },
   { id: "friends", label: "Friends" },
   { id: "achievements", label: "Badges" },
@@ -58,11 +80,44 @@ export default function LifeHub({
   feederStatus,
   commonsContent,
   labContent,
+  memoryEpisodes = [],
+  routineSummaries = [],
+  germination = {
+    livingCells: 0,
+    status: "stable",
+    progress: 0,
+    mealsGiven: 0,
+    mealsNeeded: 3,
+    message: "The cellular field is stable.",
+  },
+  vitalInventory = {
+    pulseCapsules: 0,
+    freePulseAvailable: true,
+    monthlightSerums: 0,
+    monthlightUses: 0,
+    monthlightUseCap: 2,
+    canUseMonthlight: false,
+    canAcquireMonthlight: false,
+    monthlightReason: "Appears during a deeply bonded elder life.",
+  },
+  generations = [],
+  legacyTransition = {
+    available: false,
+    seedReady: false,
+    inheritedBond: 0,
+    inheritedAchievements: 0,
+    inheritedMemories: 0,
+    inheritedTraits: [],
+    message: "This generation is still becoming itself.",
+  },
   onClose,
   onTab,
   onPurchase,
   onEquip,
   onInvite,
+  onAcquireVitalItem,
+  onUseVitalItem,
+  onBeginLegacy,
 }: LifeHubProps) {
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -114,6 +169,28 @@ export default function LifeHub({
           </span>
         </section>
 
+        {germination.status !== "stable" ? (
+          <button
+            className={`recovery-callout recovery-callout--${germination.status}`}
+            onClick={() => onTab("store")}
+          >
+            <span className="recovery-callout__seed" aria-hidden="true"><i /></span>
+            <span>
+              <small>
+                {germination.livingCells === 1 ? "ONE LIVING CELL REMAINS" : "CRITICAL CELLULAR RECOVERY"}
+              </small>
+              <strong>
+                {germination.status === "germinating"
+                  ? `Seed germination ${Math.round(germination.progress * 100)}%`
+                  : germination.status === "reviving"
+                    ? "Pulse scaffold forming"
+                    : "LIVI needs careful nourishment"}
+              </strong>
+            </span>
+            <span>See recovery care →</span>
+          </button>
+        ) : null}
+
         <nav className="hub-tabs" aria-label="Life hub sections">
           {TABS.map((item) => (
             <button
@@ -130,6 +207,18 @@ export default function LifeHub({
         <div className="hub-content" ref={contentRef}>
           {tab === "commons" ? commonsContent : null}
 
+          {tab === "memory" ? (
+            <MemoryJournal episodes={memoryEpisodes} routines={routineSummaries} />
+          ) : null}
+
+          {tab === "lineage" ? (
+            <LineagePanel
+              generations={generations}
+              transition={legacyTransition}
+              onBeginLegacy={onBeginLegacy}
+            />
+          ) : null}
+
           {tab === "store" ? (
             <section aria-label="Blob store">
               <div className="hub-section-heading">
@@ -139,8 +228,15 @@ export default function LifeHub({
                 </span>
                 <p>Earn Motes through care and achievements. Nothing here requires real money.</p>
               </div>
+              <RecoveryPanel
+                germination={germination}
+                inventory={vitalInventory}
+                currency={currency}
+                onAcquireVitalItem={onAcquireVitalItem}
+                onUseVitalItem={onUseVitalItem}
+              />
               <div className="store-grid">
-                {STORE_ITEMS.map((item) => {
+                {STORE_ITEMS.filter((item) => item.category !== "medicine").map((item) => {
                   const owned = ownedItems.includes(item.id);
                   const equipped =
                     item.id === equippedRoom || item.id === equippedToy;

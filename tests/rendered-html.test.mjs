@@ -40,10 +40,12 @@ test("ships the biological simulation, Commons, and care interactions", async ()
     hub,
     commons,
     lab,
+    continuity,
     cloud,
     lifeData,
     css,
     migration,
+    continuityMigration,
     page,
     layout,
     packageJson,
@@ -55,12 +57,20 @@ test("ships the biological simulation, Commons, and care interactions", async ()
     readFile(new URL("../app/LifeHub.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/CloudCommons.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/SimulationLab.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/LivingContinuity.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/cloud.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/lifeData.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(
       new URL(
         "../supabase/migrations/20260729055346_create_livi_commons.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+    readFile(
+      new URL(
+        "../supabase/migrations/20260729115413_livi_revisioned_cloud_memory.sql",
         import.meta.url,
       ),
       "utf8",
@@ -92,31 +102,51 @@ test("ships the biological simulation, Commons, and care interactions", async ()
   assert.match(component, /checksumJson/);
   assert.match(component, /CloudCommons/);
   assert.match(component, /SimulationLab/);
+  assert.match(component, /SEED_MEALS_REQUIRED/);
+  assert.match(component, /pulseCapsules/);
+  assert.match(component, /legacyRecords/);
+  assert.match(component, /episodicMemories/);
+  assert.match(component, /routineMemories/);
   assert.match(hub, /BLOB STORE/);
   assert.match(hub, /Commons/);
   assert.match(hub, /Lab/);
   assert.match(hub, /UPDATE HISTORY/);
-  assert.match(commons, /OPTIONAL CLOUD IDENTITY/);
-  assert.match(commons, /camera, room/);
+  assert.match(commons, /OPTIONAL ACCOUNT/);
+  assert.match(commons, /RESTORE HISTORY/);
+  assert.match(commons, /Two timelines/);
+  assert.match(continuity, /MEMORY JOURNAL/);
+  assert.match(continuity, /Pulse Capsule/);
+  assert.match(continuity, /Monthlight Serum/);
+  assert.match(continuity, /Begin the next generation/);
   assert.match(lab, /Create checkpoint/);
   assert.match(lab, /Trigger bloom/);
   assert.match(cloud, /NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY/);
-  assert.match(lifeData, /version: "0\.4\.0"/);
+  assert.match(cloud, /AES-GCM-256/);
+  assert.match(cloud, /provisionCloudEncryption/);
+  assert.match(cloud, /pushCloudRevision/);
+  assert.match(lifeData, /version: "0\.5\.0"/);
   assert.match(lifeData, /auto-feeder/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.match(css, /\.life-hub/);
   assert.match(css, /\.commons-grid/);
   assert.match(css, /\.lab-grid/);
+  assert.match(css, /\.memory-privacy/);
+  assert.match(css, /\.journal-switch/);
+  assert.match(css, /\.legacy-transition/);
+  assert.match(css, /\.sync-conflict/);
   assert.match(migration, /enable row level security/i);
   assert.match(migration, /create policy/i);
   assert.match(migration, /grant select/i);
+  assert.match(continuityMigration, /cloud_save_revisions/i);
+  assert.match(continuityMigration, /blob_memory_episodes/i);
+  assert.match(continuityMigration, /push_cloud_revision/i);
   assert.match(page, /<LiviCompanion \/>/);
   assert.match(layout, /themeColor:\s*"#071724"/);
   assert.match(packageJson, /"license": "CC0-1\.0"/);
-  assert.match(packageJson, /"version": "0\.4\.0"/);
+  assert.match(packageJson, /"version": "0\.5\.0"/);
   assert.match(readme, /public\s+domain under/i);
   assert.match(readme, /account-free/i);
-  assert.match(changelog, /\[0\.4\.0\]/);
+  assert.match(changelog, /\[0\.5\.0\]/);
   assert.match(license, /CC0 1\.0 Universal/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
 });
