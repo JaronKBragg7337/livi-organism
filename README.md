@@ -1,5 +1,10 @@
 # LIVI
 
+[Play LIVI in your browser](https://livi-organism.vercel.app) — public, no
+account required, and camera mode works on supported mobile browsers.
+
+[View the public source on GitHub](https://github.com/JaronKBragg7337/livi-organism).
+
 LIVI is a playable proof of a persistent artificial-organism companion. Its
 body is a living cell lattice rather than a fixed growth animation: nutrients
 diffuse through connected cells, metabolism consumes energy, healthy edges
@@ -26,7 +31,7 @@ Care is part of the simulation:
 All organism state stays in browser storage on the current device. Camera
 frames are not uploaded or stored.
 
-## Run locally
+## Develop locally
 
 ```bash
 npm install

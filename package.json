@@ -2,6 +2,11 @@
   "name": "livi-organism",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://livi-organism.vercel.app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JaronKBragg7337/livi-organism.git"
+  },
   "engines": {
     "node": ">=22.13.0"
   },
