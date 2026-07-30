@@ -74,6 +74,11 @@ const ELDER_THRESHOLD = 0.65;
 const SEED_MEALS_REQUIRED = 3;
 const SEED_ASSIMILATION_MS = 15_000;
 const SEED_PRIMING_DECAY_MS = 120_000;
+// Per-event care detail is only ever read for the recent window (see
+// rememberedBehavior). Older days keep every aggregate that drives behavior and
+// drop only their individual timestamps, so a multi-year save stops growing
+// without bound without losing a single remembered habit.
+const ROUTINE_DETAIL_RETENTION_DAYS = 45;
 
 type MemoryKind =
   | "long-absence"
@@ -1067,6 +1072,38 @@ function compactRoutineMemories(memories: RoutineMemory[]) {
       );
     }
   });
+  // Fold distant per-event detail into the day's aggregates. The aggregates
+  // stay authoritative because the recompute pass above is skipped for days
+  // with an empty action log, and the baseline is left at zero so a folded day
+  // that later meets an unfolded copy from another device recomputes from that
+  // copy's events instead of double counting them.
+  const newestDay = [...compacted.values()].reduce(
+    (newest, routine) => (routine.day > newest ? routine.day : newest),
+    "",
+  );
+  if (newestDay) {
+    const detailCutoff = new Date(
+      Date.parse(`${newestDay}T00:00:00Z`) -
+        ROUTINE_DETAIL_RETENTION_DAYS * 86_400_000,
+    )
+      .toISOString()
+      .slice(0, 10);
+    compacted.forEach((routine) => {
+      if (routine.day >= detailCutoff || !routine.actionLog.length) return;
+      routine.actionLog = [];
+      routine.legacyBaseline = {
+        feeds: 0,
+        pets: 0,
+        plays: 0,
+        careMoments: 0,
+        calmMoments: 0,
+        chaoticMoments: 0,
+        roomVisits: {},
+        toyUses: {},
+        friendVisits: {},
+      };
+    });
+  }
   return [...compacted.values()].sort((a, b) =>
     a.day === b.day ? a.generation - b.generation : a.day.localeCompare(b.day),
   );

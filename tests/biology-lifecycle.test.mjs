@@ -482,3 +482,108 @@ test("routine care compacts to one daily summary without losing counts", () => {
     { feeds: 1, pets: 1, plays: 1, toyUses: 1 },
   );
 });
+
+const DAY_MS = 24 * 60 * 60_000;
+const CARE_EPOCH = Date.UTC(2026, 0, 1, 8);
+
+function liveFor(organism, days, perDay = 12) {
+  for (let day = 0; day < days; day += 1) {
+    for (let action = 0; action < perDay; action += 1) {
+      const kind =
+        action % 3 === 0 ? "feed" : action % 3 === 1 ? "pet" : "play";
+      life.recordRoutine(
+        organism,
+        { kind, toyId: kind === "play" ? "prism-ball" : undefined },
+        CARE_EPOCH + day * DAY_MS + action * 7 * 60_000,
+      );
+    }
+    organism.routineMemories = life.compactRoutineMemories(
+      organism.routineMemories,
+    );
+  }
+  return organism;
+}
+
+test("multi-year care detail stays bounded instead of growing forever", () => {
+  const oneYear = liveFor(life.createOrganism(2026), 365);
+  const threeYears = liveFor(life.createOrganism(2026), 1095);
+
+  const events = (organism) =>
+    organism.routineMemories.reduce(
+      (total, routine) => total + routine.actionLog.length,
+      0,
+    );
+
+  // Every lived day is still remembered as a daily summary...
+  assert.equal(oneYear.routineMemories.length, 365);
+  assert.equal(threeYears.routineMemories.length, 1095);
+  // ...but per-event detail stops accumulating past the retention window.
+  assert.equal(events(threeYears), events(oneYear));
+  assert.ok(events(threeYears) < 12 * 60);
+  assert.ok(
+    JSON.stringify(threeYears).length < 1024 * 1024,
+    "a three-year save must stay well inside mobile storage quotas",
+  );
+});
+
+test("folding distant care detail keeps every behavior-driving aggregate", () => {
+  const organism = liveFor(life.createOrganism(3030), 120);
+  const oldest = organism.routineMemories[0];
+  const newest = organism.routineMemories.at(-1);
+
+  assert.equal(oldest.actionLog.length, 0);
+  assert.ok(newest.actionLog.length > 0);
+  // The folded day keeps the counts and rhythms that drive remembered habits.
+  assert.deepEqual(
+    {
+      feeds: oldest.feeds,
+      pets: oldest.pets,
+      plays: oldest.plays,
+      toy: oldest.toyUses["prism-ball"],
+    },
+    { feeds: 4, pets: 4, plays: 4, toy: 4 },
+  );
+  assert.ok(oldest.careMoments > 0);
+  assert.ok(Object.keys(oldest.careHourHistogram).length > 0);
+});
+
+test("re-compacting a folded history never drifts", () => {
+  const organism = liveFor(life.createOrganism(3131), 120);
+  const before = JSON.stringify(organism.routineMemories);
+  organism.routineMemories = life.compactRoutineMemories(
+    life.compactRoutineMemories(organism.routineMemories),
+  );
+  assert.equal(JSON.stringify(organism.routineMemories), before);
+});
+
+test("a folded day meeting an unfolded copy does not double count care", () => {
+  const organism = liveFor(life.createOrganism(3232), 120);
+  const foldedDay = organism.routineMemories[0];
+  assert.equal(foldedDay.actionLog.length, 0);
+
+  // Rebuild the same day as a device that never folded it would still hold it.
+  const unfoldedSource = life.createOrganism(3232);
+  for (let action = 0; action < 12; action += 1) {
+    const kind = action % 3 === 0 ? "feed" : action % 3 === 1 ? "pet" : "play";
+    life.recordRoutine(
+      unfoldedSource,
+      { kind, toyId: kind === "play" ? "prism-ball" : undefined },
+      CARE_EPOCH + action * 7 * 60_000,
+    );
+  }
+  const unfoldedDay = unfoldedSource.routineMemories[0];
+  assert.equal(unfoldedDay.day, foldedDay.day);
+  assert.ok(unfoldedDay.actionLog.length > 0);
+
+  const merged = life.compactRoutineMemories([foldedDay, unfoldedDay]);
+  assert.equal(merged.length, 1);
+  assert.deepEqual(
+    {
+      feeds: merged[0].feeds,
+      pets: merged[0].pets,
+      plays: merged[0].plays,
+      toy: merged[0].toyUses["prism-ball"],
+    },
+    { feeds: 4, pets: 4, plays: 4, toy: 4 },
+  );
+});

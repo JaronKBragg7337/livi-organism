@@ -335,6 +335,16 @@ export const FRIENDS: FriendDefinition[] = [
 
 export const UPDATE_HISTORY: UpdateEntry[] = [
   {
+    version: "0.5.1",
+    date: "July 29, 2026",
+    title: "A memory that lasts a lifetime",
+    changes: [
+      "Long-lived organisms no longer accumulate care detail forever. Every day you have shared is still remembered, and a three-year life now stays far inside mobile storage limits.",
+      "Distant days keep the habits that shape behavior—favorite toys, rooms, friends, care hours, and calm or chaotic rhythms—and drop only their individual timestamps.",
+      "Care counts can no longer be double counted when a folded history meets an older copy of the same day from another device.",
+    ],
+  },
+  {
     version: "0.5.0",
     date: "July 29, 2026",
     title: "What a life carries",

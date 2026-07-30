@@ -3,6 +3,31 @@
 All notable changes to LIVI are preserved here and in the app under **Life
 Hub → History**.
 
+## [0.5.1] - 2026-07-29
+
+### Fixed
+
+- Daily care memory no longer grows without bound. Per-event care detail is
+  retained for the most recent 45 days; older days keep every aggregate that
+  drives behavior and drop only their individual event timestamps. A simulated
+  three-year life fell from 1.70 MB to 0.67 MB, and a heavy first year from
+  1.48 MB to 0.44 MB, which matters because the local save is written to two
+  `localStorage` keys inside a ~5 MB mobile browser quota.
+- A folded day merging with an unfolded copy of the same day from another
+  device can no longer double count feeds, pets, plays, or toy uses.
+
+### Changed
+
+- Remembered habits are unaffected: favourite room, toy, and friend, care-hour
+  anticipation, and calm versus chaotic care style all read the recent window
+  and the preserved daily aggregates.
+
+### Tests
+
+- Added four regression tests covering bounded multi-year growth, aggregate
+  preservation after folding, repeated-compaction stability, and the
+  folded/unfolded merge. Three of them fail against the pre-fix behaviour.
+
 ## [0.5.0] - 2026-07-29
 
 ### Added

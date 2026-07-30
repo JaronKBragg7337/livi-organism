@@ -124,7 +124,7 @@ test("ships the biological simulation, Commons, and care interactions", async ()
   assert.match(cloud, /AES-GCM-256/);
   assert.match(cloud, /provisionCloudEncryption/);
   assert.match(cloud, /pushCloudRevision/);
-  assert.match(lifeData, /version: "0\.5\.0"/);
+  assert.match(lifeData, /version: "0\.5\.1"/);
   assert.match(lifeData, /auto-feeder/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.match(css, /\.life-hub/);
@@ -143,10 +143,10 @@ test("ships the biological simulation, Commons, and care interactions", async ()
   assert.match(page, /<LiviCompanion \/>/);
   assert.match(layout, /themeColor:\s*"#071724"/);
   assert.match(packageJson, /"license": "CC0-1\.0"/);
-  assert.match(packageJson, /"version": "0\.5\.0"/);
+  assert.match(packageJson, /"version": "0\.5\.1"/);
   assert.match(readme, /public\s+domain under/i);
   assert.match(readme, /account-free/i);
-  assert.match(changelog, /\[0\.5\.0\]/);
+  assert.match(changelog, /\[0\.5\.1\]/);
   assert.match(license, /CC0 1\.0 Universal/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
 });

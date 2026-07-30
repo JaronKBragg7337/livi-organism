@@ -31,8 +31,9 @@ Care is part of the simulation:
 - Time away is simulated on return, including energy use, damage, dormancy,
   and recovery.
 - AR room mode uses the device camera as a privacy-first local background.
-  The production mobile path is Unity AR Foundation for plane detection,
-  anchors, occlusion, and persistent room locations.
+  Real plane detection, anchors, occlusion, and persistent room locations are
+  still ahead; see [docs/MOBILE_ARCHITECTURE.md](./docs/MOBILE_ARCHITECTURE.md)
+  for the packaging decision and its reasoning.
 - The optional Blob Commons adds cross-device recovery, public organism
   profiles, visits, gifts, and friendship requests. Local play remains
   account-free, and profiles are private until their caregiver publishes them.
@@ -43,7 +44,9 @@ Care is part of the simulation:
   growth, and every organism receives one free first dose.
 - LIVI keeps permanent formative memories and compact daily care rhythms. Those
   memories alter recovery, behavior, preferences, and what later generations
-  inherit.
+  inherit. Every day you have shared stays remembered for the life of the
+  organism; only the individual timestamps of distant days are folded away, so
+  a multi-year save stays comfortably inside mobile browser storage limits.
 - Optional signed-in continuity uses immutable save revisions, restore history,
   offline queues, and explicit conflict choices instead of destructive
   last-write-wins replacement.
@@ -90,9 +93,12 @@ Commons, provide `NEXT_PUBLIC_SUPABASE_URL` and
   explicit API privileges, and row-level security policies.
 - `tests/rendered-html.test.mjs` — production-render and capability checks.
 
-The browser build is the vertical slice. The next production layer should port
-the simulation model to deterministic Unity C# data structures while keeping
-rendering, AR tracking, and UI as separate consumers of the same organism state.
+The browser build is the vertical slice. The next production layer extracts the
+simulation into a portable, deterministic TypeScript core and keeps rendering,
+AR tracking, and UI as separate consumers of the same organism state. Keeping a
+single canonical simulation is what protects save compatibility and the
+biological rules; the reasoning is in
+[docs/MOBILE_ARCHITECTURE.md](./docs/MOBILE_ARCHITECTURE.md).
 
 ## Releases and license
 
