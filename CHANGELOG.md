@@ -3,6 +3,15 @@
 All notable changes to LIVI are preserved here and in the app under **Life
 Hub → History**.
 
+## 0.6.0 - 2026-09-25
+
+- LIVI can grow far bigger: the living field went from 35x35 to 51x51, removing the ~882-cell ceiling. Older saves are re-centered
+  into the larger field on load with every cell, memory and friendship intact (tests/save-compat.test.mjs proves it).
+- The view pulls back on its own as LIVI grows. New room: the Wide Meadow, a zoomed-out view - free once LIVI reaches 600 cells.
+- Visiting friends are living cell lattices, grown from each friendship (visits + bond); they keep their shape as they grow.
+- Pip dances when he visits (any friend dances with the Dance Drum).
+- New store items: Bubble Wand, Dance Drum, Star Lamp (stacks with the Soft Nest), Crystal Cave, Sunset Reef.
+
 ## [0.5.1] - 2026-07-29
 
 ### Fixed

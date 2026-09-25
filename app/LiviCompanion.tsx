@@ -55,7 +55,9 @@ import {
   type VitalInventory,
 } from "./lifeData";
 
-const GRID = 35;
+// 0.6.0: 35 -> 51 so a mature LIVI can keep growing past ~882 cells. migrateCellField re-centers every
+// older save into the larger field on load; no cell is lost.
+const GRID = 51;
 const CENTER = Math.floor(GRID / 2);
 const MAX_LIVING = Math.floor(GRID * GRID * 0.72);
 const STORAGE_KEY = "livi-organism-v1";
@@ -412,6 +414,135 @@ function hashString(value: string) {
     hash = Math.imul(hash, 16777619);
   }
   return hash >>> 0;
+}
+
+// 0.6.0: visiting friends are living cell lattices too. Their body is derived from the friendship itself
+// (visits + bond), grown deterministically from the friend's id, so it grows as the friendship grows and needs no new save
+// fields. The first n cells never change when more are added, so a friend keeps its shape and only gets bigger.
+const friendShapeCache = new Map<string, { x: number; y: number; phase: number }[]>();
+
+function friendCellCount(friend: { visits: number; bond: number }) {
+  return Math.round(clamp(7 + friend.visits * 3 + friend.bond * 70, 7, 220));
+}
+
+function friendShape(id: string, count: number) {
+  const key = `${id}:${count}`;
+  const cached = friendShapeCache.get(key);
+  if (cached) return cached;
+  const random = mulberry32(hashString(id) ^ 0x2f6e2b);
+  const cells = [{ x: 0, y: 0, phase: random() * Math.PI * 2 }];
+  const taken = new Set(["0,0"]);
+  const directions = [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+  ];
+  let guard = 0;
+  while (cells.length < count && guard < 20000) {
+    guard += 1;
+    const parent = cells[Math.floor(random() * cells.length)];
+    const [dx, dy] = directions[Math.floor(random() * 4)];
+    const phase = random() * Math.PI * 2;
+    const key2 = `${parent.x + dx},${parent.y + dy}`;
+    if (taken.has(key2)) continue;
+    taken.add(key2);
+    cells.push({ x: parent.x + dx, y: parent.y + dy, phase });
+  }
+  friendShapeCache.set(key, cells);
+  return cells;
+}
+
+function hexToRgb(hex: string) {
+  const value = parseInt(hex.replace("#", ""), 16);
+  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
+}
+
+function drawVisitingFriend(
+  context: CanvasRenderingContext2D,
+  organism: Organism,
+  time: number,
+  width: number,
+  height: number,
+  liviX: number,
+  bodyWidth: number,
+  floorY: number,
+  spacing: number,
+) {
+  if (!organism.activeFriendId) return;
+  const definition = FRIENDS.find(({ id }) => id === organism.activeFriendId);
+  const state = organism.friends.find(({ id }) => id === organism.activeFriendId);
+  if (!definition || !state) return;
+  const cells = friendShape(definition.id, friendCellCount(state));
+  const step = spacing * 0.8;
+  let minX = 0, maxX = 0, minY = 0, maxY = 0;
+  cells.forEach(({ x, y }) => {
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x);
+    minY = Math.min(minY, y);
+    maxY = Math.max(maxY, y);
+  });
+  const halfW = ((maxX - minX + 1) * step) / 2;
+  const halfH = ((maxY - minY + 1) * step * 0.94) / 2;
+  const side = liviX > width * 0.42 ? -1 : 1;
+  const drift = Math.sin(time * 0.0007 + hashString(definition.id)) * 14;
+  // Pip always dances; any friend dances when the Dance Drum is the equipped toy.
+  const dancing = definition.id === "pip" || organism.equippedToy === "dance-drum";
+  const beat = time * (organism.equippedToy === "dance-drum" ? 0.0095 : 0.0075);
+  const hop = dancing ? Math.abs(Math.sin(beat)) * step * 3.2 : 0;
+  const sway = dancing ? Math.sin(beat * 0.5) * step * 2.4 : 0;
+  const fx = clamp(liviX + side * (bodyWidth / 2 + halfW + 22) + drift + sway, halfW + 12, width - halfW - 12);
+  const fy = clamp(floorY - halfH - 6 - hop + Math.sin(time * 0.0021) * 3, halfH + 10, height - halfH - 24);
+  const offsetX = fx - ((minX + maxX) / 2) * step;
+  const offsetY = fy - ((minY + maxY) / 2) * step * 0.94;
+  const [r, g, b] = hexToRgb(definition.hue);
+  const points = cells.map(({ x, y, phase }) => ({
+    x: offsetX + x * step + Math.sin(time * 0.0019 + phase) * step * 0.12,
+    y:
+      offsetY +
+      y * step * 0.94 +
+      Math.cos(time * 0.0016 + phase) * step * 0.09 +
+      (dancing ? Math.sin(beat * 2 + x * 0.7) * step * 0.35 : 0),
+    phase,
+  }));
+
+  // one soft body glow (no canvas blur filter - blur is the expensive part on phones)
+  const bodyGlow = context.createRadialGradient(fx, fy, 0, fx, fy, Math.max(halfW, halfH) * 1.35);
+  bodyGlow.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.55)`);
+  bodyGlow.addColorStop(0.7, `rgba(${r}, ${g}, ${b}, 0.3)`);
+  bodyGlow.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+  context.fillStyle = bodyGlow;
+  context.beginPath();
+  context.ellipse(fx, fy, halfW * 1.35, halfH * 1.35, 0, 0, Math.PI * 2);
+  context.fill();
+
+  context.save();
+  context.globalCompositeOperation = "screen";
+  points.forEach(({ x, y, phase }) => {
+    const radius = step * (0.6 + Math.sin(time * 0.0026 + phase) * 0.08);
+    const glow = context.createRadialGradient(x - radius * 0.25, y - radius * 0.3, 0, x, y, radius);
+    glow.addColorStop(0, `rgba(255, 255, 255, ${0.42 + state.bond * 0.3})`);
+    glow.addColorStop(0.7, `rgba(${r}, ${g}, ${b}, 0.34)`);
+    glow.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.03)`);
+    context.fillStyle = glow;
+    context.beginPath();
+    context.arc(x, y, radius, 0, Math.PI * 2);
+    context.fill();
+  });
+  context.restore();
+
+  const eyeY = fy - halfH * 0.25;
+  const eyeGap = Math.max(5, Math.min(halfW * 0.35, 12));
+  context.fillStyle = "#071b2b";
+  [-1, 1].forEach((direction) => {
+    context.beginPath();
+    context.arc(fx + direction * eyeGap, eyeY, Math.max(2.5, step * 0.32), 0, Math.PI * 2);
+    context.fill();
+  });
+  context.font = "600 11px system-ui, sans-serif";
+  context.textAlign = "center";
+  context.fillStyle = "rgba(236, 253, 255, 0.92)";
+  context.fillText(`${definition.name} · ${cells.length} cells`, fx, fy + halfH + 16);
 }
 
 function createOrganism(seed = Math.floor(Math.random() * 2_000_000_000)): Organism {
@@ -1473,6 +1604,14 @@ function hydrateLifeSystems(organism: Organism) {
     };
   });
   organism.ownedItems ??= [];
+  // 0.6.0: a LIVI that has reached the old room's limit gets the Wide Meadow for free.
+  if (
+    !organism.ownedItems.includes("meadow-room") &&
+    Array.isArray(organism.cells) &&
+    organism.cells.reduce((count, cell) => count + Number(cell?.alive), 0) >= 600
+  ) {
+    organism.ownedItems.push("meadow-room");
+  }
   organism.equippedRoom ??= "atrium";
   organism.equippedToy ??= null;
   if (
@@ -3365,7 +3504,8 @@ function metabolize(organism: Organism, movementCost: number) {
       cell.health = clamp(
         cell.health +
           0.0022 * (0.6 + organism.traits.resilience) +
-          (organism.ownedItems.includes("soft-nest") ? 0.00045 : 0),
+          (organism.ownedItems.includes("soft-nest") ? 0.00045 : 0) +
+          (organism.ownedItems.includes("star-lamp") ? 0.0004 : 0),
       );
     } else {
       cell.health = clamp(
@@ -3645,6 +3785,9 @@ export const __liviTest = {
   recordRoutine,
   compactRoutineMemories,
   preserveMonotonicContinuity,
+  migrateCellField,
+  friendShape,
+  friendCellCount,
 };
 
 export default function LiviCompanion() {
@@ -3952,9 +4095,14 @@ export default function LiviCompanion() {
     const now = Date.now();
     const equipped = organism.equippedToy;
     organism.joy = clamp(
-      organism.joy + (equipped === "prism-ball" ? 0.1 : 0.065),
+      organism.joy +
+        (equipped === "prism-ball" || equipped === "bubble-wand" ? 0.1 : 0.065),
     );
     organism.bond = clamp(organism.bond + 0.012);
+    if (equipped === "dance-drum" && organism.activeFriendId) {
+      const dancer = organism.friends.find(({ id }) => id === organism.activeFriendId);
+      if (dancer) dancer.bond = clamp(dancer.bond + 0.02);
+    }
     if (equipped === "echo-chime") {
       organism.bond = clamp(organism.bond + 0.014);
       organism.trust = clamp(organism.trust + 0.012);
@@ -3975,7 +4123,11 @@ export default function LiviCompanion() {
     positionRef.current.targetY = 0.38 + Math.random() * 0.28;
     positionRef.current.nextWander = performance.now() + 2400;
     behaviorRef.current =
-      equipped === "echo-chime"
+      equipped === "dance-drum"
+        ? "Dancing to the drum"
+        : equipped === "bubble-wand"
+          ? "Popping bubbles"
+          : equipped === "echo-chime"
         ? "Listening to the echo chime"
         : equipped === "prism-ball"
           ? "Chasing prism light"
@@ -4275,7 +4427,22 @@ export default function LiviCompanion() {
       const living = organism.cells
         .map((cell, index) => ({ cell, index }))
         .filter(({ cell }) => cell.alive);
-      const spacing = clamp(Math.min(width, height) / 68, 6.3, 10.5);
+      let bodyExtent = 1;
+      living.forEach(({ index }) => {
+        bodyExtent = Math.max(
+          bodyExtent,
+          Math.abs((index % GRID) - CENTER),
+          Math.abs(Math.floor(index / GRID) - CENTER),
+        );
+      });
+      const fitShare = organism.equippedRoom === "meadow-room" ? 0.3 : 0.42;
+      const spacing = Math.max(
+        2.6,
+        Math.min(
+          clamp(Math.min(width, height) / 68, 6.3, 10.5),
+          (Math.min(width, height) * fitShare) / (bodyExtent + 1),
+        ),
+      );
       const centerX = position.x * width;
       const idleBob =
         Math.sin(time * 0.0022) * 2.5 * clamp(mean.energy * 1.4, 0.15, 1);
@@ -4390,6 +4557,18 @@ export default function LiviCompanion() {
           context.stroke();
         });
         context.restore();
+
+        drawVisitingFriend(
+          context,
+          organism,
+          time,
+          width,
+          height,
+          centerX,
+          bodyWidth,
+          bottom,
+          spacing,
+        );
 
         const visibleScars = organism.revivalScars.filter(
           ({ generation }) => generation === organism.lineage,
@@ -6755,14 +6934,8 @@ export default function LiviCompanion() {
           onPointerLeave={stopPetting}
         />
         {activeFriend ? (
-          <div
-            className="visiting-friend"
-            style={{ "--friend-color": activeFriend.hue } as React.CSSProperties}
-            aria-label={`${activeFriend.name} is visiting`}
-          >
-            <i />
-            <i />
-            <small>{activeFriend.name}</small>
+          <div className="visiting-friend-label" aria-live="polite">
+            {activeFriend.name} is visiting
           </div>
         ) : null}
         <div className="stage-hint">

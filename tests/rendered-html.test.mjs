@@ -88,7 +88,7 @@ test("ships the biological simulation, Commons, and care interactions", async ()
   assert.match(component, /function migrateCellField/);
   assert.match(component, /function findNearestFoodIndex/);
   assert.match(component, /foods\.splice\(activeFoodIndex, 1\)/);
-  assert.match(component, /const GRID = 35/);
+  assert.match(component, /const GRID = 51/);
   assert.match(component, /getUserMedia/);
   assert.match(component, /localStorage/);
   assert.match(component, /Feed/);

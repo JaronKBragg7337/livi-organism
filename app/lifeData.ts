@@ -228,6 +228,51 @@ export const STORE_ITEMS: StoreItem[] = [
     rarity: "rare",
   },
   {
+    id: "bubble-wand",
+    name: "Bubble Wand",
+    category: "toy",
+    price: 90,
+    description: "Drifting bubbles LIVI loves to chase and pop.",
+    effect: "Big joy boost when you play",
+    glyph: "○",
+  },
+  {
+    id: "dance-drum",
+    name: "Dance Drum",
+    category: "toy",
+    price: 140,
+    description: "A friendly beat. Visiting friends dance harder and bond faster when you play.",
+    effect: "Friends dance; friendship grows faster",
+    glyph: "◍",
+  },
+  {
+    id: "star-lamp",
+    name: "Star Lamp",
+    category: "decor",
+    price: 220,
+    description: "A slow night light that helps tired cells heal. Works together with the Soft Nest.",
+    effect: "Extra recovery, stacks with the nest",
+    glyph: "✧",
+  },
+  {
+    id: "crystal-cave",
+    name: "Crystal Cave",
+    category: "room",
+    price: 320,
+    description: "A glittering cave with deep blue light.",
+    effect: "A calm, glowing home",
+    glyph: "◆",
+  },
+  {
+    id: "sunset-reef",
+    name: "Sunset Reef",
+    category: "room",
+    price: 450,
+    description: "Warm water and coral light at the end of the day.",
+    effect: "A warm, bright home",
+    glyph: "◠",
+  },
+  {
     id: "moss-room",
     name: "Moss Room",
     category: "room",
@@ -244,6 +289,15 @@ export const STORE_ITEMS: StoreItem[] = [
     description: "A nocturnal habitat filled with cool orbital light.",
     effect: "More exploration and luminous skin",
     glyph: "◐",
+  },
+  {
+    id: "meadow-room",
+    name: "Wide Meadow",
+    category: "room",
+    price: 150,
+    description: "An open field with a far-away view, so a big body still fits on the screen. Free once LIVI reaches 600 cells.",
+    effect: "Zoomed-out view for large organisms",
+    glyph: "✶",
   },
 ];
 
@@ -334,6 +388,19 @@ export const FRIENDS: FriendDefinition[] = [
 ];
 
 export const UPDATE_HISTORY: UpdateEntry[] = [
+  {
+    version: "0.6.0",
+    date: "September 25, 2026",
+    title: "Room to grow, and friends who are alive",
+    changes: [
+      "LIVI can grow far bigger now - the old ceiling of about 882 cells is gone. Your LIVI moves into the larger space exactly as it is: every cell, memory, and friendship stays.",
+      "New room: the Wide Meadow, a zoomed-out view so a big LIVI still fits on the screen. It opens for free once LIVI reaches 600 cells.",
+      "The view now pulls back on its own as LIVI grows, so its edges never slide off the screen.",
+      "Friends are living cell creatures now, like LIVI. Every visit and every bit of bond makes them grow, and they keep their own shape as they do.",
+      "Pip dances when he visits.",
+      "New things to spend Motes on: the Bubble Wand, the Dance Drum, the Star Lamp, the Crystal Cave and the Sunset Reef.",
+    ],
+  },
   {
     version: "0.5.1",
     date: "July 29, 2026",

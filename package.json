@@ -1,6 +1,6 @@
 {
   "name": "livi-organism",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "private": true,
   "license": "CC0-1.0",
   "homepage": "https://livi-organism.vercel.app",
@@ -15,7 +15,7 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "vinext start",
-    "test": "npm run build && node --import tsx --test tests/biology-lifecycle.test.mjs tests/cloud-persistence.test.mjs && node --test tests/rendered-html.test.mjs",
+    "test": "npm run build && node --import tsx --test tests/biology-lifecycle.test.mjs tests/cloud-persistence.test.mjs tests/save-compat.test.mjs && node --test tests/rendered-html.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate"
   },

@@ -1460,6 +1460,53 @@ canvas:focus-visible {
     linear-gradient(180deg, #8faf91 0 57%, #4f7160 57% 58%, #1d382e 100%);
 }
 
+.room-meadow-room .habitat {
+  background:
+    radial-gradient(circle at 78% 18%, rgba(255, 246, 214, 0.9), transparent 7%),
+    radial-gradient(ellipse at 50% 100%, rgba(120, 190, 120, 0.55), transparent 60%),
+    linear-gradient(180deg, #9cc7e8 0 46%, #d9e8c9 46% 47%, #7fae6f 47% 70%, #3f6b45 100%);
+}
+
+.room-crystal-cave .habitat {
+  background:
+    radial-gradient(circle at 30% 30%, rgba(160, 220, 255, 0.5), transparent 20%),
+    radial-gradient(circle at 72% 40%, rgba(190, 160, 255, 0.45), transparent 18%),
+    linear-gradient(180deg, #1c2d52 0 57%, #2a3f6e 57% 58%, #0c1428 100%);
+}
+
+.room-sunset-reef .habitat {
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255, 196, 140, 0.8), transparent 22%),
+    linear-gradient(180deg, #f39a7a 0 30%, #8a6fb0 30% 57%, #3f8a99 57% 58%, #1d4d5c 100%);
+}
+
+.habitat-toy--bubble-wand {
+  animation: specimen-float 2.4s ease-in-out infinite;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  box-shadow: 14px -18px 0 -6px rgba(200, 240, 255, 0.6), -10px -30px 0 -9px rgba(255, 220, 250, 0.6);
+  height: 26px;
+  width: 26px;
+}
+
+.habitat-toy--dance-drum {
+  animation: specimen-float 0.9s ease-in-out infinite;
+  background: linear-gradient(180deg, #ffd9a0, #e08a5a);
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  border-radius: 40% 40% 12px 12px;
+  height: 30px;
+  width: 36px;
+}
+
+.visiting-friend-label {
+  clip: rect(0 0 0 0);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
 .room-moon-room .habitat {
   background:
     radial-gradient(circle at 67% 22%, rgba(238, 243, 255, 0.88), transparent 8%),
