@@ -143,7 +143,7 @@ test("ships the biological simulation, Commons, and care interactions", async ()
   assert.match(page, /<LiviCompanion \/>/);
   assert.match(layout, /themeColor:\s*"#071724"/);
   assert.match(packageJson, /"license": "CC0-1\.0"/);
-  assert.match(packageJson, /"version": "0\.5\.1"/);
+  assert.match(packageJson, /"version": "0\.6\.1"/);
   assert.match(readme, /public\s+domain under/i);
   assert.match(readme, /account-free/i);
   assert.match(changelog, /\[0\.5\.1\]/);

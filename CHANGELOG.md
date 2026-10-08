@@ -3,6 +3,25 @@
 All notable changes to LIVI are preserved here and in the app under **Life
 Hub → History**.
 
+## 0.6.1 - 2026-10-08
+
+### Fixed
+
+- A Livi that was tended every day could suddenly lose almost its whole body (1,800 cells to 47) and gain a false
+  "waiting through 8 quiet days" memory. Cause: restoring a cloud copy treated the time since that copy was
+  *written* as time the caregiver was away. Absence is now measured from the newest real sign of presence
+  (the local save, the last sync on this device, the copy's own last-seen), a restore with no local evidence applies at most
+  12 hours (under the 24h that writes a long-absence memory), and a restore from Restore History or an imported
+  file no longer counts the gap since that save as absence.
+- On start-up the app now compares the localStorage and IndexedDB copies by their own last-seen *before* aging either,
+  so a stale copy can no longer be simulated forward into looking newer than the fresh one.
+- A cloud restore can no longer lower Motes, bond or trust below what the device already holds, and no longer drops items it owns.
+
+### Tests
+
+- tests/restore-absence.test.mjs reproduces the 8-day false absence (stale cloud head, daily-cared local save): the old
+  path collapses a 1,800-cell body, the new one keeps every cell and writes no memory. Real absence is still simulated.
+
 ## 0.6.0 - 2026-09-25
 
 - LIVI can grow far bigger: the living field went from 35x35 to 51x51, removing the ~882-cell ceiling. Older saves are re-centered

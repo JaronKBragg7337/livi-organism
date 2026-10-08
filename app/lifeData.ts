@@ -389,6 +389,16 @@ export const FRIENDS: FriendDefinition[] = [
 
 export const UPDATE_HISTORY: UpdateEntry[] = [
   {
+    version: "0.6.1",
+    date: "October 8, 2026",
+    title: "No more made-up time away",
+    changes: [
+      "Fixed a bug where LIVI could be told it had been left alone for days when you had been caring for it every morning and night. When a saved copy was brought back, the age of the copy was mistaken for time away, which could wrongly shrink LIVI and write a false 'quiet stretch' memory.",
+      "Time away is now measured only from the last time LIVI was really seen. A restored copy can never add more time away than there really was, and a restore from history no longer counts the gap since that save as absence.",
+      "LIVI now always starts from the newest copy saved on your device, and a restore never lowers Motes, bond, or trust below what this device already has.",
+    ],
+  },
+  {
     version: "0.6.0",
     date: "September 25, 2026",
     title: "Room to grow, and friends who are alive",

@@ -3084,11 +3084,91 @@ function applyOfflineLife(
   );
 }
 
-function loadOrganism() {
+// Pick the save that was most recently in use. Both copies are compared by the
+// lastSeen written INSIDE them, before either one is run through offline-life
+// simulation, so a stale copy can never be aged forward into looking newer than
+// the fresh copy sitting next to it.
+// A restore (cloud head, restore-history revision, imported file) brings back a
+// BODY. How old that backup is says nothing about how long the caregiver was
+// away: it only says when a copy was written. Absence is therefore measured from
+// the newest trustworthy sign of presence, and when the only evidence is the
+// backup itself, the absence applied is capped well under the 24 hours that
+// would write a "long absence" memory. Guessing too gentle costs nothing; guessing
+// too harsh once erased a daily-tended Livi (see CHANGELOG 0.6.1).
+const RESTORE_UNKNOWN_ABSENCE_CAP_MS = 12 * 3_600_000;
+
+function resolveRestoreLastSeen(input: {
+  now: number;
+  backupLastSeen?: number;
+  backupSavedAt?: number;
+  localLastSeen?: number;
+  localSyncedAt?: number;
+  hadLocalSave: boolean;
+}) {
+  const usable = (value: number | undefined) =>
+    typeof value === "number" &&
+    Number.isFinite(value) &&
+    value > 0 &&
+    value <= input.now
+      ? value
+      : 0;
+  // Local last-seen only counts when a real local save existed; a freshly
+  // created organism's "now" is not evidence of anything.
+  let lastSeen = Math.max(
+    usable(input.backupLastSeen),
+    usable(input.backupSavedAt),
+    usable(input.localSyncedAt),
+    input.hadLocalSave ? usable(input.localLastSeen) : 0,
+  );
+  if (!input.hadLocalSave) {
+    lastSeen = Math.max(lastSeen, input.now - RESTORE_UNKNOWN_ABSENCE_CAP_MS);
+  }
+  return lastSeen || input.now;
+}
+
+function applyRestoredLife(
+  organism: Organism,
+  input: Omit<Parameters<typeof resolveRestoreLastSeen>[0], "backupLastSeen">,
+) {
+  const lastSeen = resolveRestoreLastSeen({
+    ...input,
+    backupLastSeen: organism.lastSeen,
+  });
+  return applyOfflineLife(organism, input.now, lastSeen);
+}
+
+function pickFreshestSave(
+  ...serializedCandidates: Array<string | null | undefined>
+): unknown | null {
+  let best: unknown | null = null;
+  let bestSeen = -Infinity;
+  for (const serialized of serializedCandidates) {
+    if (!serialized) continue;
+    try {
+      const parsed = JSON.parse(serialized) as { lastSeen?: unknown };
+      const seen =
+        typeof parsed?.lastSeen === "number" && Number.isFinite(parsed.lastSeen)
+          ? parsed.lastSeen
+          : 0;
+      if (best === null || seen > bestSeen) {
+        best = parsed;
+        bestSeen = seen;
+      }
+    } catch {
+      // An unreadable copy is skipped; the other copy may still be good.
+    }
+  }
+  return best;
+}
+
+function loadOrganism(indexedSerialized?: string | null) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return createOrganism();
-    return normalizeSavedOrganism(JSON.parse(raw));
+    const picked = pickFreshestSave(
+      localStorage.getItem(STORAGE_KEY),
+      indexedSerialized,
+    );
+    if (!picked) return createOrganism();
+    return normalizeSavedOrganism(picked);
   } catch {
     return createOrganism();
   }
@@ -3788,6 +3868,11 @@ export const __liviTest = {
   migrateCellField,
   friendShape,
   friendCellCount,
+  applyOfflineLife,
+  applyRestoredLife,
+  resolveRestoreLastSeen,
+  pickFreshestSave,
+  normalizeSavedOrganism,
 };
 
 export default function LiviCompanion() {
@@ -3974,32 +4059,32 @@ export default function LiviCompanion() {
   }, []);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      hadLocalSaveRef.current = Boolean(localStorage.getItem(STORAGE_KEY));
-      localOwnerRef.current =
-        localStorage.getItem(LOCAL_ACTIVE_OWNER_KEY) || "anonymous";
-      const organism = loadOrganism();
+    let cancelled = false;
+    localOwnerRef.current =
+      localStorage.getItem(LOCAL_ACTIVE_OWNER_KEY) || "anonymous";
+    // Read IndexedDB BEFORE choosing and aging a save, so a stale localStorage
+    // copy is never simulated forward into looking newer than the fresh copy.
+    // A short race keeps the app from waiting on a slow or blocked database.
+    const indexedRead = readIndexedLocalOrganism(localOwnerRef.current).catch(
+      () => null,
+    );
+    const timeout = new Promise<null>((resolve) =>
+      window.setTimeout(() => resolve(null), 1200),
+    );
+    void Promise.race([indexedRead, timeout]).then((indexedSerialized) => {
+      if (cancelled) return;
+      hadLocalSaveRef.current =
+        Boolean(localStorage.getItem(STORAGE_KEY)) ||
+        Boolean(indexedSerialized);
+      const organism = loadOrganism(indexedSerialized);
       organismRef.current = organism;
       setSnapshot(makeSnapshot(organism, "Noticing you"));
       setWelcomed(localStorage.getItem(WELCOME_KEY) !== "yes");
       setReady(true);
-      void readIndexedLocalOrganism(localOwnerRef.current)
-        .then((serialized) => {
-          if (!serialized) return;
-          const indexed = normalizeSavedOrganism(JSON.parse(serialized));
-          if (indexed.lastSeen <= organismRef.current.lastSeen) return;
-          const continuous = preserveMonotonicContinuity(
-            indexed,
-            organismRef.current,
-          );
-          organismRef.current = continuous;
-          setSnapshot(makeSnapshot(continuous, "Memory restored"));
-        })
-        .catch(() => {
-          // Account-free play still starts instantly from the localStorage head.
-        });
-    }, 0);
-    return () => window.clearTimeout(timer);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -4854,12 +4939,20 @@ export default function LiviCompanion() {
         trustAcceptedHead &&
         authoritative.generationId === continuous.generationId
       ) {
-        continuous.currency = authoritative.currency;
-        continuous.ownedItems = authoritative.ownedItems;
+        // Never roll back to a staler value than this device already holds.
+        // Motes come from the merged ledger (spends on either side are in it),
+        // so only a higher authoritative figure may raise them.
+        continuous.currency = Math.max(
+          continuous.currency,
+          authoritative.currency,
+        );
+        continuous.ownedItems = [
+          ...new Set([...authoritative.ownedItems, ...continuous.ownedItems]),
+        ];
         continuous.equippedRoom = authoritative.equippedRoom;
         continuous.equippedToy = authoritative.equippedToy;
-        continuous.bond = authoritative.bond;
-        continuous.trust = authoritative.trust;
+        continuous.bond = Math.max(continuous.bond, authoritative.bond);
+        continuous.trust = Math.max(continuous.trust, authoritative.trust);
       }
       organismRef.current = continuous;
       behaviorRef.current = behavior;
@@ -5454,11 +5547,13 @@ export default function LiviCompanion() {
           localMeta.lastSyncedChecksum === localChecksum;
         if (!hadLocalSaveRef.current || localIsUnchanged) {
           const serverNow = await getCloudServerTime();
-          const restored = applyOfflineLife(
-            remoteOrganism,
-            serverNow,
-            new Date(headRevision.created_at).getTime(),
-          );
+          const restored = applyRestoredLife(remoteOrganism, {
+            now: serverNow,
+            backupSavedAt: new Date(headRevision.created_at).getTime(),
+            localLastSeen: organismRef.current.lastSeen,
+            localSyncedAt: localMeta.lastSyncedAt ?? undefined,
+            hadLocalSave: hadLocalSaveRef.current,
+          });
           applyProtectedOrganism(
             restored,
             "Remembering another trusted device",
@@ -5766,9 +5861,12 @@ export default function LiviCompanion() {
           if (preserved?.revision_status === "conflict") return;
         }
 
-        const organism = normalizeSavedOrganism(
+        // The caregiver is here, choosing this revision right now: the time
+        // between that revision and today is not time away.
+        const organism = parseSavedOrganism(
           await decryptCloudPayload<unknown>(target, cloudKeyRef.current),
         );
+        organism.lastSeen = Date.now();
         const continuous = preserveMonotonicContinuity(
           organism,
           organismRef.current,
@@ -6233,7 +6331,10 @@ export default function LiviCompanion() {
         const parsed = JSON.parse(await file.text()) as {
           organism?: unknown;
         };
-        const organism = normalizeSavedOrganism(parsed.organism ?? parsed);
+        const organism = applyRestoredLife(
+          parseSavedOrganism(parsed.organism ?? parsed),
+          { now: Date.now(), hadLocalSave: false },
+        );
         const continuous = preserveMonotonicContinuity(
           organism,
           organismRef.current,
